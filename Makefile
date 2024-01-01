@@ -3,6 +3,8 @@ X86_64-CC  = x86_64-linux-gnu-g++
 
 OUTPUTDIR = ./build
 
+CCFLAGS = -std=c++20
+
 TARGETS = x86_64 aarch64
 
 all: $(TARGETS)
@@ -14,7 +16,7 @@ $(filter-out all, $(TARGETS)): main.cpp
 		exit 1; \
 	fi
 	mkdir -p $(OUTPUTDIR)
-	$($(shell echo $@ | tr '[:lower:]' '[:upper:]')-CC) -o $(OUTPUTDIR)/kcsh-$@ main.cpp
+	$($(shell echo $@ | tr '[:lower:]' '[:upper:]')-CC) -o $(OUTPUTDIR)/kcsh-$@ $(CCFLAGS) main.cpp
 
 # Clean up intermediate files and executables
 clean:
