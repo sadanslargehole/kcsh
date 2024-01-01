@@ -31,6 +31,10 @@ jobs:
     - name: Build
       run: make ${{ matrix.target }}
 
+    - name: Set outputs
+      id: vars
+      run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
     - name: Upload files to a GitHub release
       uses: svenstaro/upload-release-action@2.7.0
       with:
@@ -38,5 +42,5 @@ jobs:
         file: ./build/kcsh-*
         file_glob: true
         overwrite: true
-        tag: ${{ github.ref }}-${{ github.sha }}
+        tag: ${{ github.ref }}-${{ steps.vars.outputs.sha_short }}
 
