@@ -56,10 +56,10 @@ int main() {
 
         // UGHHHHH
         if (cmd == "cd") {
-            fs::path newPathFrag = join(args+1);
-            fs::path path = cwd + "/" + join(args+1);
-            std::cout << path << std::endl;
-            std::cout << newPathFrag << std::endl;
+            fs::path path = join(args+1);
+            
+            path = path.is_absolute() ? path : fs::absolute(path);
+
             if (fs::exists(path) && fs::is_directory(path)) {
                 fs::current_path(path);
             } else {
