@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <filesystem>
+#include <algorithm>
 
 namespace fs = std::filesystem;
 
@@ -61,6 +62,8 @@ int main() {
             *arg = const_cast<char*>(replaceSubstring(*arg, "~", homePath().string()).c_str());
         }
 
+        std::vector<std::string> builtins = {"cd", "exit", "which"}; // Remember to add your builtins!!!
+
         // UGHHHHH
         if (cmd == "cd") {
 
@@ -76,6 +79,19 @@ int main() {
             }
         } else if (cmd == "exit") {
             exit(0);
+        } else if (cmd == "which") {
+            std::string execName = (args+1)[0];
+            std::string execPath = findExecutablePath(execName);
+
+            auto it = std::find(builtins.begin(), builtins.end(), execName);
+
+            if (it != builtins.end()) {
+                std::cout << execName << ": shell built-in command" << std::endl;
+            } else if (!execPath.empty()) {
+                std::cout << trim(execPath) << std::endl;
+            } else {
+                std::cout << execName << " not found" << std::endl;
+            }
         } else {
             shellexec(cmd, args);
         }

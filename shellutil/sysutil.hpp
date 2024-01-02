@@ -8,6 +8,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <fstream>
 #include <filesystem>
 #include "stringutil.hpp"
 
@@ -41,6 +42,26 @@ inline std::string prettyPath(std::string path) {
 
 inline std::string prettyPath(fs::path path) {
     return prettyPath(path.string());
+}
+
+inline std::string findExecutablePath(const std::string& executableName) {
+    std::string result;
+    std::string pathEnv = std::getenv("PATH");
+
+    std::istringstream pathStream(pathEnv);
+    std::string path;
+
+    while (std::getline(pathStream, path, ':')) {
+        fs::path fullPath = path;
+        fullPath /= executableName;
+
+        if (fs::exists(fullPath) && fs::is_regular_file(fullPath)) {
+            result = fullPath;
+            break;
+        }
+    }
+
+    return result;
 }
 
 #endif
