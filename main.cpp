@@ -1,3 +1,5 @@
+#include <cerrno>
+#include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -8,6 +10,9 @@
 #include "shellutil/shellexec.hpp"
 #include <unistd.h>
 #include <sys/wait.h>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 int main() {
     while (true) {
@@ -15,7 +20,7 @@ int main() {
         std::string prompt_color        = FG_WHITE;
         std::string prompt_character    = "$";
 
-        std::string cwd         = trim(std::getenv("PWD"));
+        std::string cwd         = trim(fs::current_path());
         std::string cwd_color   = FG_BLUE;
 
         std::string user        = trim(sysexec("whoami"));
@@ -40,11 +45,30 @@ int main() {
         std::getline(std::cin, cmd);
 
         std::vector<std::string> tokens = split(&cmd);
+
+        if (tokens.empty()) {
+            continue;
+        }
+
         std::vector<const char*> cstringTokens = cstringArray(tokens);
         cmd = cstringTokens[0];
         args = const_cast<char**>(cstringTokens.data());
 
-        shellexec(cmd, args, environ);
+        // UGHHHHH
+        if (cmd == "cd") {
+            fs::path newPathFrag = join(args+1);
+            fs::path path = cwd + "/" + join(args+1);
+            std::cout << path << std::endl;
+            std::cout << newPathFrag << std::endl;
+            if (fs::exists(path) && fs::is_directory(path)) {
+                fs::current_path(path);
+            } else {
+                errno = 2;
+                perror("cd");
+            }
+        } else {
+            shellexec(cmd, args);
+        }
     }
     
     return 0;

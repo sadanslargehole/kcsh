@@ -10,9 +10,7 @@
 #include <unistd.h>
 #include "stringutil.hpp"
 
-namespace fs = std::filesystem;
-
-inline int shellexec(std::string cmd, char** args, char** environment) {
+inline int shellexec(std::string cmd, char** args, char** environment = environ) {
 
         const char* command = cmd.c_str();
         
@@ -25,7 +23,7 @@ inline int shellexec(std::string cmd, char** args, char** environment) {
 
             execvp(command, args);
 
-            perror("execvp");
+            perror("kcsh");
             _exit(1);
         } else {  // Parent process
             // Wait for the child to finish
@@ -33,14 +31,6 @@ inline int shellexec(std::string cmd, char** args, char** environment) {
             waitpid(pid, &status, 0);
 
             if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-                std::string path = join(args+1);
-                std::cout << path << std::endl;
-
-                if (std::strcmp(command, "cd")) {
-                    if (fs::exists(path) && fs::is_directory(path)) {
-                        putenv(const_cast<char*>(("PWD=" + path).c_str()));
-                    }
-                }
                 return status;
             } else {
                 return 0;
