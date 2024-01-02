@@ -1,5 +1,5 @@
 # KCSH
-Reinventing the penguin-colored wheel
+Reinventing the penguin-colored wheel: **k**eli5's **c**++ **sh**ell for linux
 
 ## Building
 ### Debug builds
