@@ -3,32 +3,39 @@ X86_64-CC  = x86_64-linux-gnu-g++
 
 OUTPUTDIR = ./build
 
+RELEASE_OUTPUTDIR = $(OUTPUTDIR)/release
+DEBUG_OUTPUTDIR = $(OUTPUTDIR)/debug
+
 CCFLAGS = -std=c++20
+
+RELEASE_CCFLAGS = $(CCFLAGS) -O3
 DEBUG_CCFLAGS = $(CCFLAGS) -g
 
-TARGETS = x86_64 aarch64
-DEBUG_TARGETS = x86_64-dbg aarch64-dbg
+RELEASE_TARGETS = x86_64 aarch64
+DEBUG_TARGETS = x86_64-debug aarch64-debug
 
-all: $(TARGETS)
+release: $(RELEASE_TARGETS)
 debug: $(DEBUG_TARGETS)
 
+all: $(RELEASE_TARGETS) $(DEBUG_TARGETS)
+
 # Build if target compiler exists
-$(filter-out all, $(TARGETS)): main.cpp
+$(filter-out all, $(RELEASE_TARGETS)): main.cpp
 	@if ! which $($(shell echo $@ | tr '[:lower:]' '[:upper:]')-CC) > /dev/null 2>&1; then \
 		echo "Error: Compiler for target $@ not found."; \
 		exit 1; \
 	fi
-	mkdir -p $(OUTPUTDIR)
-	$($(shell echo $@ | tr '[:lower:]' '[:upper:]')-CC) -o $(OUTPUTDIR)/kcsh-$@ $(CCFLAGS) main.cpp
+	mkdir -p $(RELEASE_OUTPUTDIR)
+	$($(shell echo $@ | tr '[:lower:]' '[:upper:]')-CC) -o $(RELEASE_OUTPUTDIR)/kcsh-$@ $(RELEASE_CCFLAGS) main.cpp
 
 # Pattern rule for building debug targets
-%-dbg: main.cpp
+$(filter-out all, %-debug): main.cpp
 	@if ! which $($(shell echo $* | tr '[:lower:]' '[:upper:]')-CC) > /dev/null 2>&1; then \
 		echo "Error: Compiler for target $@ not found."; \
 		exit 1; \
 	fi
-	mkdir -p $(OUTPUTDIR)
-	$($(shell echo $* | tr '[:lower:]' '[:upper:]')-CC) -o $(OUTPUTDIR)/kcsh-$@ $(DEBUG_CCFLAGS) main.cpp
+	mkdir -p $(DEBUG_OUTPUTDIR)
+	$($(shell echo $* | tr '[:lower:]' '[:upper:]')-CC) -o $(DEBUG_OUTPUTDIR)/kcsh-$@ $(DEBUG_CCFLAGS) main.cpp
 
 # Clean up intermediate files and executables
 clean:
