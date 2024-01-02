@@ -1,5 +1,11 @@
 # KCSH
 Reinventing the penguin-colored wheel
 
-# Builds
-Makefile includes `x86_64` and `aarch64` targets, `make all` to bulld every target. Working on Manjaro Linux 23.1.1
+## Building
+### Debug builds
+Makefile includes `debug` (builds all debug targets) as well as `(arch)-debug` (for supported architectures.) Just use `make debug` or `make x86_64-debug`/your preferred architecture to build -g3 executables, useful for GDB and etc.
+### Release builds
+Makefile also includes `release` (builds all release targets.) Release is default, so just `make (arch)` for supported architectures will build a fully optimized release executable.
+
+## Contributing
+Feature requests, issues, and pull requests are always welcome!
