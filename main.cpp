@@ -1,12 +1,13 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <string>
 #include "shellutil/stringutil.hpp"
 #include "shellutil/vecutil.hpp"
 #include "shellutil/colors.hpp"
-#include "shellutil/sysexec.hpp"
+#include "shellutil/sysutil.hpp"
 #include "shellutil/shellexec.hpp"
 #include <unistd.h>
 #include <sys/wait.h>
@@ -34,7 +35,7 @@ int main() {
         char** args;
 
         std::string formattedchar = prompt_color + prompt_character + " ";
-        std::string formattedcwd  = cwd_color + cwd;
+        std::string formattedcwd  = prettyPath(cwd_color + cwd);
         std::string formatteduser = user_color + user;
         std::string formattedhost = hostname_color + hostname;
 
@@ -55,6 +56,10 @@ int main() {
         std::vector<const char*> cstringTokens = cstringArray(tokens);
         cmd = cstringTokens[0];
         args = const_cast<char**>(cstringTokens.data());
+
+        for (char** arg = args; *arg != nullptr; ++arg) {
+            *arg = const_cast<char*>(replaceSubstring(*arg, "~", homePath().string()).c_str());
+        }
 
         // UGHHHHH
         if (cmd == "cd") {

@@ -60,4 +60,16 @@ inline std::string join(const std::vector<std::string>& strings, char delimiter 
     return result;
 }
 
+inline std::string replaceSubstring(const std::string& original, const std::string& toReplace, const std::string& replacement) {
+    std::string result = original;
+    size_t position = result.find(toReplace);
+
+    while (position != std::string::npos) {
+        result.replace(position, toReplace.length(), replacement);
+        position = result.find(toReplace, position + replacement.length());
+    }
+
+    return result;
+}
+
 #endif
