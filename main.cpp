@@ -26,7 +26,7 @@ int main() {
         std::string user        = trim(sysexec("whoami"));
         std::string user_color  = FG_RED;
 
-        std::string hostname        = trim(sysexec("hostname"));
+        std::string hostname        = trim(sysexec("cat /proc/sys/kernel/hostname"));
         std::string hostname_color  = FG_MAGENTA;
 
         std::string cmd = "";
