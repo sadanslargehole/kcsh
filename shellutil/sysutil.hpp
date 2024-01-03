@@ -1,14 +1,11 @@
 #ifndef KCSH_SYSUTIL
 #define KCSH_SYSUTIL
 
-#include <iostream>
 #include <cstdio>
 #include <array>
 #include <memory>
-#include <optional>
 #include <stdexcept>
 #include <string>
-#include <fstream>
 #include <filesystem>
 #include "stringutil.hpp"
 

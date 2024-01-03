@@ -1,7 +1,7 @@
 #ifndef KCSH_VECUTIL
 #define KCSH_VECUTIL
 
-#include <iostream>
+#include <string>
 #include <vector>
 #include <unistd.h>
 

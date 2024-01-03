@@ -9,6 +9,7 @@
 #include "shellutil/colors.hpp"
 #include "shellutil/sysutil.hpp"
 #include "shellutil/shellexec.hpp"
+#include "shellutil/settingsutil.hpp"
 #include <unistd.h>
 #include <sys/wait.h>
 #include <filesystem>

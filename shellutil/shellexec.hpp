@@ -1,17 +1,20 @@
 #ifndef KCSH_SHELLEXEC
 #define KCSH_SHELLEXEC
 
-#include <cstdlib>
-#include <cstring>
+#include <cstdio>
 #include <iostream>
-#include <ostream>
+#include <string>
 #include <sys/wait.h>
-#include <filesystem>
 #include <unistd.h>
+#include "settingsutil.hpp"
 #include "stringutil.hpp"
+#include "sysutil.hpp"
 #include <vector>
 #include <algorithm>
-    
+#include <filesystem>
+
+namespace fs = std::filesystem;
+
 const std::vector<std::string> builtins = {"cd", "exit", "which"}; // Remember to add your builtins!!!
 
 
@@ -89,7 +92,17 @@ inline int runCommand(char** args){
                 std::cout << execName << " not found" << std::endl;
                 return 1;
             }
-        } else {
+        } else if (cmd == "parseexampleini") {
+            IniData iniData = parseIniFile("example.ini");
+            for (const auto& section : iniData) {
+                std::cout << "section " << section.first << "\n";
+                for (const auto& entry : section.second) {
+                    std::cout << "key " << entry.first << ", value " << entry.second << "\n";
+                }
+            }
+            return 0;
+        }
+        else {
             return shellexec(cmd, args);
         }
 }
