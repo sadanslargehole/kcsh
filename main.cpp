@@ -73,7 +73,6 @@ int main()
             {
                 if (runCommand(command.data()) != 0)
                 {
-                    std::cout << "||" << std::endl;
                     command.clear();
                     continue;
                 }
@@ -81,14 +80,12 @@ int main()
             }
             else if (strcmp(*arg, ";")==0)
             {
-                std::cout << ";" << std::endl;
                 runCommand(command.data());
                 command.clear();
                 continue;
             }
             else if (strcmp(*arg, "&&")==0)
             {
-                std::cout << "&&"<< std::endl;
                 if (runCommand(command.data()) == 0)
                 {
                     command.clear();
