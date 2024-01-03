@@ -1,5 +1,6 @@
 build/
 core.*
+*.gitpod*
 # clangd debugger
 .cache
 *.gitpod*
