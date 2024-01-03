@@ -75,6 +75,8 @@ int main() {
                 fs::current_path(dest);
                 setenv("PWD", fs::current_path().c_str(), 1);
                 continue;
+            }else if (params.at(0)=='~'){
+                replaceSubstring(params, "~", homePath());
             }
             fs::path path = params;
             
