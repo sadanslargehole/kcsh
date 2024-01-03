@@ -9,6 +9,11 @@
 #include <filesystem>
 #include <unistd.h>
 #include "stringutil.hpp"
+#include <vector>
+#include <algorithm>
+    
+const std::vector<std::string> builtins = {"cd", "exit", "which"}; // Remember to add your builtins!!!
+
 
 inline int shellexec(std::string cmd, char** args, char** environment = environ) {
 
@@ -37,5 +42,52 @@ inline int shellexec(std::string cmd, char** args, char** environment = environ)
             }
         }
 }
+inline int runCommand(char** args){
+    std::string cmd = *args;
+    // UGHHHHH
+        if (cmd == "cd") {
+            std::string params = join(args+1);
+            if (params == "-"){
+                char* dest = std::getenv("OLDPWD");
+                setenv("OLDPWD", fs::current_path().c_str(), 1);
+                fs::current_path(dest);
+                setenv("PWD", fs::current_path().c_str(), 1);
+                return 0;
+            }else if (params.at(0)=='~'){
+                replaceSubstring(params, "~", homePath());
+            }
+            fs::path path = params;
+            
+            path = path.is_absolute() ? path : fs::absolute(path);
 
+            if (fs::exists(path) && fs::is_directory(path)) {
+                setenv("OLDPWD", fs::current_path().c_str(), 1);
+                fs::current_path(path);
+                setenv("PWD", fs::current_path().c_str(), 1);
+            } else {
+                errno = 2;
+                perror("cd");
+            }
+        } else if (cmd == "exit") {
+            exit(0);
+        } else if (cmd == "which") {
+            std::string execName = (args+1)[0];
+            std::string execPath = findExecutablePath(execName);
+
+            auto it = std::find(builtins.begin(), builtins.end(), execName);
+
+            if (it != builtins.end()) {
+                std::cout << execName << ": shell built-in command" << std::endl;
+                return 0;
+            } else if (!execPath.empty()) {
+                std::cout << trim(execPath) << std::endl;
+                return 0;
+            } else {
+                std::cout << execName << " not found" << std::endl;
+                return 1;
+            }
+        } else {
+            return shellexec(cmd, args);
+        }
+}
 #endif
