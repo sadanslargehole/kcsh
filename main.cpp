@@ -1,6 +1,7 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <string>
 #include "shellutil/stringutil.hpp"
@@ -8,6 +9,7 @@
 #include "shellutil/colors.hpp"
 #include "shellutil/sysutil.hpp"
 #include "shellutil/shellexec.hpp"
+#include "shellutil/settingsutil.hpp"
 #include <unistd.h>
 #include <sys/wait.h>
 #include <filesystem>
@@ -63,7 +65,7 @@ int main() {
             *arg = const_cast<char*>(replaceSubstring(*arg, "~", homePath().string()).c_str());
         }
 
-        std::vector<std::string> builtins = {"cd", "exit", "which"}; // Remember to add your builtins!!!
+        std::vector<std::string> builtins = {"cd", "exit", "which", "parseexampleini"}; // Remember to add your builtins!!!
 
         // UGHHHHH
         if (cmd == "cd") {
@@ -101,6 +103,14 @@ int main() {
                 std::cout << trim(execPath) << std::endl;
             } else {
                 std::cout << execName << " not found" << std::endl;
+            }
+        } else if (cmd == "parseexampleini") {
+            IniData iniData = parseIniFile("example.ini");
+            for (const auto& section : iniData) {
+                std::cout << "section " << section.first << "\n";
+                for (const auto& entry : section.second) {
+                    std::cout << "key " << entry.first << ", value " << entry.second << "\n";
+                }
             }
         } else {
             shellexec(cmd, args);
