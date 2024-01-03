@@ -47,7 +47,7 @@ inline int runCommand(char** args){
     // UGHHHHH
         if (cmd == "cd") {
             std::string params = join(args+1);
-            if (params == "-"){
+            if (params.compare("-")==0){
                 char* dest = std::getenv("OLDPWD");
                 setenv("OLDPWD", fs::current_path().c_str(), 1);
                 fs::current_path(dest);
@@ -64,12 +64,15 @@ inline int runCommand(char** args){
                 setenv("OLDPWD", fs::current_path().c_str(), 1);
                 fs::current_path(path);
                 setenv("PWD", fs::current_path().c_str(), 1);
+                return 0;
             } else {
                 errno = 2;
                 perror("cd");
+                return 1;
             }
         } else if (cmd == "exit") {
             exit(0);
+            return 0; //not sure if this is needed
         } else if (cmd == "which") {
             std::string execName = (args+1)[0];
             std::string execPath = findExecutablePath(execName);

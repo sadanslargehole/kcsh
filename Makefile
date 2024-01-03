@@ -6,7 +6,7 @@ OUTPUTDIR = ./build
 RELEASE_OUTPUTDIR = $(OUTPUTDIR)/release
 DEBUG_OUTPUTDIR = $(OUTPUTDIR)/debug
 
-CCFLAGS = -std=c++20 -Wall
+CCFLAGS = -std=c++20 -Wall -Wextra
 
 RELEASE_CCFLAGS = $(CCFLAGS) -O3 -Os
 DEBUG_CCFLAGS = $(CCFLAGS) -g3

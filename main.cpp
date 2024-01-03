@@ -64,34 +64,31 @@ int main()
         std::vector<const char *> cstringTokens = cstringArray(tokens);
         cmd = cstringTokens[0];
         args = const_cast<char **>(cstringTokens.data());
-
-        for (char **arg = args; *arg != nullptr; ++arg)
-        {
-            *arg = const_cast<char *>(replaceSubstring(*arg, "~", homePath().string()).data());
-        }
         // FIXME: are some of these vectors redundant
         // FIXME: add support for quotes and escaping
         std::vector<char*> command;
-        for (char **arg = args; *arg != nullptr; arg++)
+        for (char** arg = args; *arg != nullptr; ++arg)
         {
-
-            if (*arg == "||")
+            if (strcmp(*arg, "||")==0)
             {
                 if (runCommand(command.data()) != 0)
                 {
+                    std::cout << "||" << std::endl;
                     command.clear();
                     continue;
                 }
                 break;
             }
-            else if (*arg == ";")
+            else if (strcmp(*arg, ";")==0)
             {
+                std::cout << ";" << std::endl;
                 runCommand(command.data());
                 command.clear();
                 continue;
             }
-            else if (*arg == "&&")
+            else if (strcmp(*arg, "&&")==0)
             {
+                std::cout << "&&"<< std::endl;
                 if (runCommand(command.data()) == 0)
                 {
                     command.clear();
@@ -105,7 +102,9 @@ int main()
             }
         }
         // run command if no thingiers were found
-        runCommand((char **)command.data());
+        if (command.size()>0){
+            runCommand(command.data());
+        }
     }
 
     return 0;
