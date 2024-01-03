@@ -40,5 +40,4 @@ jobs:
         file: ./build/release/kcsh-*
         file_glob: true
         overwrite: true
-        tag: ${{ github.ref }}-${{ steps.vars.outputs.sha_short }}
 
