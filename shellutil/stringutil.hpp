@@ -1,7 +1,6 @@
 #ifndef KCSH_STRINGUTIL
 #define KCSH_STRINGUTIL
 
-#include <numeric>
 #include <sstream>
 #include <string>
 #include <vector>

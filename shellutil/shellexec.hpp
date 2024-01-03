@@ -1,14 +1,10 @@
 #ifndef KCSH_SHELLEXEC
 #define KCSH_SHELLEXEC
 
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
-#include <ostream>
+#include <cstdio>
+#include <string>
 #include <sys/wait.h>
-#include <filesystem>
 #include <unistd.h>
-#include "stringutil.hpp"
 
 inline int shellexec(std::string cmd, char** args, char** environment = environ) {
 
