@@ -67,6 +67,7 @@ int main() {
         std::vector<char *> command;
         for (char **arg = args; *arg != nullptr; ++arg) {
             if (strcmp(*arg, "||") == 0) {
+                command.push_back(nullptr);
                 if (runCommand(command.data()) != 0) {
                     command.clear();
                     continue;
@@ -74,10 +75,12 @@ int main() {
                 command.clear();
                 break;
             } else if (strcmp(*arg, ";") == 0) {
+                command.push_back(nullptr);
                 runCommand(command.data());
                 command.clear();
                 continue;
             } else if (strcmp(*arg, "&&") == 0) {
+                command.push_back(nullptr);
                 if (runCommand(command.data()) == 0) {
                     command.clear();
                     continue;
@@ -90,6 +93,7 @@ int main() {
         }
         // run command if no thingiers were found
         if (command.size() > 0) {
+            command.push_back(nullptr);
             runCommand(command.data());
         }
     }
