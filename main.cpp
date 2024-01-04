@@ -1,29 +1,27 @@
+#include "shellutil/colors.hpp"
+#include "shellutil/settingsutil.hpp"
+#include "shellutil/shellexec.hpp"
+#include "shellutil/stringutil.hpp"
+#include "shellutil/sysutil.hpp"
+#include "shellutil/vecutil.hpp"
+#include <algorithm>
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <iostream>
 #include <string>
-#include "shellutil/stringutil.hpp"
-#include "shellutil/vecutil.hpp"
-#include "shellutil/colors.hpp"
-#include "shellutil/sysutil.hpp"
-#include "shellutil/shellexec.hpp"
-#include "shellutil/settingsutil.hpp"
-#include <unistd.h>
 #include <sys/wait.h>
-#include <filesystem>
-#include <algorithm>
+#include <unistd.h>
 
 namespace fs = std::filesystem;
 
-int main()
-{
+int main() {
 
     setenv("OLDPWD", fs::current_path().c_str(), 1);
     setenv("PWD", fs::current_path().c_str(), 1);
-    while (true)
-    {
+    while (true) {
 
         std::string prompt_color = FG_WHITE;
         std::string prompt_character = "$";
@@ -46,19 +44,18 @@ int main()
         std::string formatteduser = user_color + user;
         std::string formattedhost = hostname_color + hostname;
 
-        std::string prompt = "[" + formatteduser + RESET + "@" + formattedhost + RESET +
-                             "] " + formattedcwd + RESET + "\n" + formattedchar + RESET;
+        std::string prompt = "[" + formatteduser + RESET + "@" + formattedhost +
+                             RESET + "] " + formattedcwd + RESET + "\n" +
+                             formattedchar + RESET;
 
         std::cout << prompt;
 
         std::getline(std::cin, cmd);
-        if (std::cin.eof())
-        {
+        if (std::cin.eof()) {
             exit(0);
         }
         std::vector<std::string> tokens = split(&cmd);
-        if (tokens.empty())
-        {
+        if (tokens.empty()) {
             continue;
         }
 
@@ -67,40 +64,32 @@ int main()
         args = const_cast<char **>(cstringTokens.data());
         // FIXME: are some of these vectors redundant
         // FIXME: add support for quotes and escaping
-        std::vector<char*> command;
-        for (char** arg = args; *arg != nullptr; ++arg)
-        {
-            if (strcmp(*arg, "||")==0)
-            {
-                if (runCommand(command.data()) != 0)
-                {
+        std::vector<char *> command;
+        for (char **arg = args; *arg != nullptr; ++arg) {
+            if (strcmp(*arg, "||") == 0) {
+                if (runCommand(command.data()) != 0) {
                     command.clear();
                     continue;
                 }
+                command.clear();
                 break;
-            }
-            else if (strcmp(*arg, ";")==0)
-            {
+            } else if (strcmp(*arg, ";") == 0) {
                 runCommand(command.data());
                 command.clear();
                 continue;
-            }
-            else if (strcmp(*arg, "&&")==0)
-            {
-                if (runCommand(command.data()) == 0)
-                {
+            } else if (strcmp(*arg, "&&") == 0) {
+                if (runCommand(command.data()) == 0) {
                     command.clear();
                     continue;
                 }
+                command.clear();
                 break;
-            }
-            else
-            {
+            } else {
                 command.push_back(*arg);
             }
         }
         // run command if no thingiers were found
-        if (command.size()>0){
+        if (command.size() > 0) {
             runCommand(command.data());
         }
     }
