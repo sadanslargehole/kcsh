@@ -4,3 +4,5 @@ core.*
 # clangd debugger
 .cache
 *.gitpod*
+#vscode local files
+.vscode
