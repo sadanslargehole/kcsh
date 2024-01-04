@@ -64,7 +64,7 @@ inline int runCommand(char **args) {
             setenv("PWD", fs::current_path().c_str(), 1);
             return 0;
         } else if (params.at(0) == '~') {
-            replaceSubstring(params, "~", homePath());
+            params = replaceSubstring(params, "~", homePath());
         }
         fs::path path = params;
 
