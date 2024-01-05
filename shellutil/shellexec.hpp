@@ -32,7 +32,6 @@ inline int shellexec(std::string cmd, char **args,
     } else if (pid == 0) { // Child process
 
         execvp(command, args);
-
         perror("kcsh");
         _exit(1);
     } else { // Parent process

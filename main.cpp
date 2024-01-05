@@ -17,7 +17,7 @@
 
 namespace fs = std::filesystem;
 
-int main() {
+int main(int argc, char** argv) {
 
     setenv("OLDPWD", fs::current_path().c_str(), 1);
     setenv("PWD", fs::current_path().c_str(), 1);
@@ -68,6 +68,11 @@ int main() {
         for (char **arg = args; *arg != nullptr; ++arg) {
             if (strcmp(*arg, "||") == 0) {
                 command.push_back(nullptr);
+                if (command.at(0) == nullptr){
+                    printf("%s: Syntax error\n", *argv);
+                    command.clear();
+                    break;
+                }
                 if (runCommand(command.data()) != 0) {
                     command.clear();
                     continue;
@@ -76,11 +81,21 @@ int main() {
                 break;
             } else if (strcmp(*arg, ";") == 0) {
                 command.push_back(nullptr);
+                if (command.at(0) == nullptr){
+                    //there is no error with just a semicolon
+                    command.clear();
+                    break;
+                }
                 runCommand(command.data());
                 command.clear();
                 continue;
             } else if (strcmp(*arg, "&&") == 0) {
                 command.push_back(nullptr);
+                if (command.at(0) == nullptr){
+                    printf("%s: Syntax error\n", *argv);
+                    command.clear();
+                    break;
+                }
                 if (runCommand(command.data()) == 0) {
                     command.clear();
                     continue;
@@ -92,7 +107,7 @@ int main() {
             }
         }
         // run command if no thingiers were found
-        if (command.size() > 0) {
+        if (command.size() > 0 && command.at(0)!=nullptr) {
             command.push_back(nullptr);
             runCommand(command.data());
         }
