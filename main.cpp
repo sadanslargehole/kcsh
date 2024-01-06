@@ -67,19 +67,18 @@ int main() {
         // UGHHHHH
         if (cmd == "cd") {
             std::string params = join(args+1);
-            if(params.size()==0){
+            if(params.size()==0) {
                 setenv("OLDPWD", fs::current_path().c_str(), 1);
                 fs::current_path(homePath());
                 setenv("PWD", fs::current_path().c_str(), 1);
                 continue;
-            }
-            else if (params == "-"){
+            } else if (params == "-") {
                 char* dest = std::getenv("OLDPWD");
                 setenv("OLDPWD", fs::current_path().c_str(), 1);
                 fs::current_path(dest);
                 setenv("PWD", fs::current_path().c_str(), 1);
                 continue;
-            }else if (params.at(0)=='~'){
+            } else if (params.at(0)=='~') {
                 params = replaceSubstring(params, "~", homePath().string());
             }
             fs::path path = params;
