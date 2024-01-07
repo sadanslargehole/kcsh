@@ -15,11 +15,20 @@ using IniData = std::map<std::string, std::map<std::string, std::pair<std::strin
 
 inline std::string escapeToReadable(const std::string& input) {
     std::ostringstream result;
+    bool inComment = false;
     for (char c : input) {
         if (c == '\033') {
             result << "\\e";
+        } else if (c == ';' && !inComment) {
+            result << "\\;";
         } else {
             result << c;
+        }
+
+        if (c == ';') {
+            inComment = true;
+        } else if (c == '\n') {
+            inComment = false;
         }
     }
     return result.str();
@@ -31,6 +40,9 @@ inline std::string readableToEscape(const std::string& input) {
     while (i < input.size()) {
         if (input[i] == '\\' && input[i + 1] == 'e') {
             result << '\033';
+            i += 2;
+        } else if (input[i] == '\\' && input[i + 1] == ';') {
+            result << ';';
             i += 2;
         } else {
             result << input[i];
@@ -62,15 +74,13 @@ inline IniData parseIniFile(const std::string& filename) {
             continue;
         }
 
-        // [sections]
         if (line[0] == '[' && line[line.length() - 1] == ']') {
-            currentSection = line.substr(1, line.length() - 2);
+            currentSection = readableToEscape(line.substr(1, line.length() - 2));
         } else {
-            // parse key=value in sections
             size_t equalsPos = line.find('=');
             if (equalsPos != std::string::npos) {
-                std::string key = line.substr(0, equalsPos);
-                std::string value = line.substr(equalsPos + 1);
+                std::string key = readableToEscape(line.substr(0, equalsPos));
+                std::string value = readableToEscape(line.substr(equalsPos + 1));
                 iniData[currentSection][key] = std::make_pair(value, "");
             }
         }
@@ -79,6 +89,7 @@ inline IniData parseIniFile(const std::string& filename) {
     file.close();
     return iniData;
 }
+
 
 inline IniData getDefaultConfig() {
     IniData defaultConfig;
