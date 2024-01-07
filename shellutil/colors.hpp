@@ -2,6 +2,8 @@
 #define KCSH_COLORS
 
 #define RESET               std::string("\033[0m")
+#define BOLD                std::string("\033[1m")
+#define ULINE               std::string("\033[4m")
 
 // text color
 #define FG_BLACK            std::string("\033[30m")

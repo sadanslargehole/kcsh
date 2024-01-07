@@ -15,20 +15,20 @@ using IniData = std::map<std::string, std::map<std::string, std::pair<std::strin
 
 inline std::string escapeToReadable(const std::string& input) {
     std::ostringstream result;
-    bool inComment = false;
     for (char c : input) {
+        bool inComment = false;
+        if (c == ';') {
+            inComment = true;
+        } else if (c == '\n') {
+            inComment = false;
+        }
+
         if (c == '\033') {
             result << "\\e";
         } else if (c == ';' && !inComment) {
             result << "\\;";
         } else {
             result << c;
-        }
-
-        if (c == ';') {
-            inComment = true;
-        } else if (c == '\n') {
-            inComment = false;
         }
     }
     return result.str();
@@ -95,17 +95,18 @@ inline IniData getDefaultConfig() {
     IniData defaultConfig;
 
     defaultConfig["prompt"]["promptcharacter"] = std::make_pair("$", "");
-    defaultConfig["prompt"]["format"] = std::make_pair("[%COLOREDUSER%%RESET%@%COLOREDHOST%%RESET%] %COLOREDPATH% %RESET%%NEWLINE%%PROMPTCHARACTER%",
+    defaultConfig["prompt"]["format"] = std::make_pair("%BOLD%[%COLOREDUSER%%RESET%%BOLD%@%COLOREDHOST%%RESET%%BOLD%]%RESET% %COLOREDPATH% %RESET%%NEWLINE%%PROMPTCHARACTER%",
     "Prompt format. Available placeholders: \n\
 ; %COLOREDUSER% and %USER% for the formatted and unformatted user, respectively\n\
 ; %COLOREDHOST% and %HOST% for the formatted and unformatted host, respectively\n\
 ; %COLOREDPATH% and %PATH% for the formatted and unformatted path, respectively\n\
 ; %NEWLINE% will be substituted with a newline character\n\
-; %RESET% will reset all formatting\n\
 ; %PROMPTCHARACTER% is replaced with the promptcharacter configuration key plus a space\n\
-; See https://keli5.github.io/kcsh-resources/colors.html for help with color codes");
+; %BOLD%  will make following text bold\n\
+; %ULINE% will make following text underlined\n\
+; %RESET% will reset text formatting\n");
 
-    defaultConfig["colors"]["path"] = std::make_pair(FG_BLUE, "color code/s for path");
+    defaultConfig["colors"]["path"] = std::make_pair(FG_BLUE, "color code/s for path \n; see https://keli5.github.io/kcsh-resources/colors.html for help with color codes");
     defaultConfig["colors"]["hostname"] = std::make_pair(FG_MAGENTA, "color code/s for hostname");
     defaultConfig["colors"]["username"] = std::make_pair(FG_RED, "color code/s for username");
 
@@ -167,8 +168,10 @@ inline std::string parsePromptFormat(std::string ptemplate, std::string prompt_c
         promptOutput = replaceSubstring(promptOutput, "%COLOREDPATH%", cwd_color + cwd);
         promptOutput = replaceSubstring(promptOutput, "%PATH%", cwd);
         promptOutput = replaceSubstring(promptOutput, "%NEWLINE%", "\n");
-        promptOutput = replaceSubstring(promptOutput, "%RESET%", RESET);
         promptOutput = replaceSubstring(promptOutput, "%PROMPTCHARACTER%", prompt_character);
+        promptOutput = replaceSubstring(promptOutput, "%RESET%", RESET);
+        promptOutput = replaceSubstring(promptOutput, "%BOLD%", BOLD);
+        promptOutput = replaceSubstring(promptOutput, "%ULINE%", ULINE);
 
         return promptOutput;
 }
