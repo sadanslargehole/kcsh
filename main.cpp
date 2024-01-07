@@ -40,7 +40,7 @@ int main() {
         std::string prompt_color        = FG_WHITE;
         std::string prompt_character    = getIniValue(settings, "prompt", "promptcharacter") + " ";
 
-        std::string cwd         = trim(fs::current_path());
+        std::string cwd         = prettyPath(trim(fs::current_path()));
         std::string cwd_color   = getIniValue(settings, "colors", "path");
 
         std::string user        = trim(sysexec("whoami"));
