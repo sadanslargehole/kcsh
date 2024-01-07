@@ -20,31 +20,42 @@ namespace fs = std::filesystem;
 int main() {
     setenv("OLDPWD", fs::current_path().c_str(), 1);
     setenv("PWD", fs::current_path().c_str(), 1);
+    fs::path settingsDir = homePath().concat("/.config/kcsh");
+    
+    IniData settings;
+
+    fs::create_directory(settingsDir);
+    settings = parseIniFile(settingsDir.string() + "/kcsh_config.ini");
+    
+    if (settings.empty()) {
+        #ifdef NDEBUG
+            std::cout << "Creating default config in " + settingsDir.string() << std::endl;
+        #endif
+        settings = getDefaultConfig();
+        saveIniFile(settings, settingsDir.string() + "/kcsh_config.ini");
+    }
+
     while (true) {
 
         std::string prompt_color        = FG_WHITE;
-        std::string prompt_character    = "$";
+        std::string prompt_character    = getIniValue(settings, "prompt", "promptcharacter") + " ";
 
         std::string cwd         = trim(fs::current_path());
-        std::string cwd_color   = FG_BLUE;
+        std::string cwd_color   = getIniValue(settings, "colors", "path");
 
         std::string user        = trim(sysexec("whoami"));
-        std::string user_color  = FG_RED;
+        std::string user_color  = getIniValue(settings, "colors", "username");
 
         std::string hostname        = trim(sysexec("cat /proc/sys/kernel/hostname"));
-        std::string hostname_color  = FG_MAGENTA;
+        std::string hostname_color  = getIniValue(settings, "colors", "hostname");;
 
         std::string cmd = "";
 
         char** args;
 
-        std::string formattedchar = prompt_color + prompt_character + " ";
-        std::string formattedcwd  = prettyPath(cwd_color + cwd);
-        std::string formatteduser = user_color + user;
-        std::string formattedhost = hostname_color + hostname;
 
-        std::string prompt ="[" + formatteduser + RESET + "@" + formattedhost + RESET + 
-                            "] " + formattedcwd + RESET + "\n" + formattedchar + RESET;
+        std::string prompt = parsePromptFormat(getIniValue(settings, "prompt", "format"), prompt_character, cwd, cwd_color,
+                                                user, user_color, hostname, hostname_color);
 
         std::cout << prompt;
         
@@ -113,9 +124,10 @@ int main() {
             for (const auto& section : iniData) {
                 std::cout << "section " << section.first << "\n";
                 for (const auto& entry : section.second) {
-                    std::cout << "key " << entry.first << ", value " << entry.second << "\n";
+                    std::cout << "key " << entry.first << ", value " << getIniValue(iniData, section.first, entry.first) << "\n";
                 }
             }
+            saveIniFile(getDefaultConfig(), "output.ini");
         } else {
             shellexec(cmd, args);
         }
