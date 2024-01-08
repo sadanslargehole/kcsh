@@ -103,8 +103,7 @@ inline int runCommand(char **args) {
         for (const auto &section : iniData) {
             std::cout << "section " << section.first << "\n";
             for (const auto &entry : section.second) {
-                std::cout << "key " << entry.first << ", value " << entry.second
-                          << "\n";
+                    std::cout << "key " << entry.first << ", value " << getIniValue(iniData, section.first, entry.first) << "\n";
             }
         }
         return 0;
