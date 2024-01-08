@@ -35,8 +35,7 @@ inline int shellexec(std::string cmd, char **args,
         perror("fork");
         return 1;
     } else if (pid == 0) { // Child process
-        char* a[] = {"TEST=asd", NULL};
-        execvpe(command, args, a);
+        execvpe(command, args, environment);
         perror("kcsh");
         _exit(1);
     } else { // Parent process
@@ -59,11 +58,13 @@ inline std::vector<char *> prepEnv(char *namesToAdd[], char *valuesToAdd[]) {
     }
     int i = 0;
     while (*(namesToAdd +i) !=nullptr) {
-    
-        toRet.push_back(std::string(namesToAdd[i])
-                                .append("=")
-                                .append(valuesToAdd[i])
-                                .data());
+        auto s = strlen(namesToAdd[i])+strlen(valuesToAdd[i])+2;
+        char* x = new char[s]();
+        // memset(x, 0, s);
+        strcat(x, namesToAdd[i]);
+        strcat(x, "=");
+        strcat(x, valuesToAdd[i]);
+        toRet.push_back(x);
         i++;
     }
     toRet.push_back(nullptr);
@@ -115,7 +116,7 @@ inline int runCommand(char **args, char *envName[], char *envValue[]) {
     } else if (cmd == "export") {
         // TODO: impliment export -p (prints the export commands for all env
         // vars)
-        if (args + 1 == nullptr) {
+        if (*(args + 1) == nullptr) {
             return 0;
         }
         bool willSet = false;
@@ -172,8 +173,17 @@ inline int runCommand(char **args, char *envName[], char *envValue[]) {
     } else {
         if (envName == nullptr || *envName == nullptr)
             return WEXITSTATUS(shellexec(cmd, args));
-        return WEXITSTATUS(
-            shellexec(cmd, args, prepEnv(envName, envValue).data()));
+        auto envToPass = prepEnv(envName, envValue);
+        
+        int exitStatus = WEXITSTATUS(
+            shellexec(cmd, args, envToPass.data()));
+        int i = 0;
+        while(envName[i] !=nullptr){
+            //-2 to avoid nullptr at end
+            delete [] envToPass.at(envToPass.size()-2-i);
+            i++;
+        }
+        return exitStatus;
     }
 }
 #endif
