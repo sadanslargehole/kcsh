@@ -35,8 +35,8 @@ inline int shellexec(std::string cmd, char **args,
         perror("fork");
         return 1;
     } else if (pid == 0) { // Child process
-
-        execvpe(command, args, environment);
+        char* a[] = {"TEST=asd", NULL};
+        execvpe(command, args, a);
         perror("kcsh");
         _exit(1);
     } else { // Parent process
@@ -51,33 +51,22 @@ inline int shellexec(std::string cmd, char **args,
         }
     }
 }
-inline int sizeThingie(char **a) {
-    int count = 0;
-    for (char **i = a; *i != nullptr; i++) {
-        count++;
-    }
-    return count;
-}
 
 inline std::vector<char *> prepEnv(char *namesToAdd[], char *valuesToAdd[]) {
-    int a = sizeThingie(namesToAdd);
-    int b = sizeThingie(environ);
-    char *namesAndValues[a];
-    // FIXME - this code does not work. somehow the array namesandvalues has
-    // four items in it, when size is one. this loop is wokrnu
-    for (int i = 0; i < a; i++) {
-        namesAndValues[i] = std::string(namesToAdd[i])
+    std::vector<char *> toRet;
+    for (char** i = environ; *i!=nullptr; i++) {
+        toRet.push_back(*i);
+    }
+    int i = 0;
+    while (*(namesToAdd +i) !=nullptr) {
+    
+        toRet.push_back(std::string(namesToAdd[i])
                                 .append("=")
                                 .append(valuesToAdd[i])
-                                .data();
+                                .data());
+        i++;
     }
-    std::vector<char *> toRet;
-    for (int i = 0; i < b; i++) {
-        toRet.push_back(environ[i]);
-    }
-    for (int i = 0; i < a; i++) {
-        toRet.push_back(namesAndValues[a]);
-    }
+    toRet.push_back(nullptr);
     return toRet;
 }
 inline int runCommand(char **args, char *envName[], char *envValue[]);
