@@ -33,7 +33,9 @@ inline std::string trim(const std::string& str) {
 
 inline std::string join(char** strings, char delimiter = char()) {
     std::string result = "";
-
+    if(*strings==nullptr){
+        return result;
+    }
     for (char** currentString = strings; *currentString != nullptr; ++currentString) {
         result += *currentString;
         

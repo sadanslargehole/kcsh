@@ -1,23 +1,24 @@
+#include "shellutil/colors.hpp"
+#include "shellutil/settingsutil.hpp"
+#include "shellutil/shellexec.hpp"
+#include "shellutil/stringutil.hpp"
+#include "shellutil/sysutil.hpp"
+#include "shellutil/vecutil.hpp"
+#include <algorithm>
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <iostream>
 #include <string>
-#include "shellutil/stringutil.hpp"
-#include "shellutil/vecutil.hpp"
-#include "shellutil/colors.hpp"
-#include "shellutil/sysutil.hpp"
-#include "shellutil/shellexec.hpp"
-#include "shellutil/settingsutil.hpp"
-#include <unistd.h>
 #include <sys/wait.h>
-#include <filesystem>
-#include <algorithm>
+#include <unistd.h>
 
 namespace fs = std::filesystem;
 
-int main() {
+int main(int argc, char** argv) {
+
     setenv("OLDPWD", fs::current_path().c_str(), 1);
     setenv("PWD", fs::current_path().c_str(), 1);
     fs::path settingsDir = homePath().concat("/.config/kcsh");
@@ -51,16 +52,16 @@ int main() {
 
         std::string cmd = "";
 
-        char** args;
+        char **args;
 
 
         std::string prompt = parsePromptFormat(getIniValue(settings, "prompt", "format"), prompt_character, cwd, cwd_color,
                                                 user, user_color, hostname, hostname_color);
 
         std::cout << prompt;
-        
+
         std::getline(std::cin, cmd);
-        if (std::cin.eof()){
+        if (std::cin.eof()) {
             exit(0);
         }
         std::vector<std::string> tokens = split(&cmd);
@@ -68,70 +69,59 @@ int main() {
             continue;
         }
 
-        std::vector<const char*> cstringTokens = cstringArray(tokens);
+        std::vector<const char *> cstringTokens = cstringArray(tokens);
         cmd = cstringTokens[0];
-        args = const_cast<char**>(cstringTokens.data());
-
-
-        std::vector<std::string> builtins = {"cd", "exit", "which", "parseexampleini"}; // Remember to add your builtins!!!
-
-        // UGHHHHH
-        if (cmd == "cd") {
-            std::string params = join(args+1);
-            if(params.size()==0) {
-                setenv("OLDPWD", fs::current_path().c_str(), 1);
-                fs::current_path(homePath());
-                setenv("PWD", fs::current_path().c_str(), 1);
-                continue;
-            } else if (params == "-") {
-                char* dest = std::getenv("OLDPWD");
-                setenv("OLDPWD", fs::current_path().c_str(), 1);
-                fs::current_path(dest);
-                setenv("PWD", fs::current_path().c_str(), 1);
-                continue;
-            } else if (params.at(0)=='~') {
-                params = replaceSubstring(params, "~", homePath().string());
-            }
-            fs::path path = params;
-            
-            path = path.is_absolute() ? path : fs::absolute(path);
-
-            if (fs::exists(path) && fs::is_directory(path)) {
-                setenv("OLDPWD", fs::current_path().c_str(), 1);
-                fs::current_path(path);
-                setenv("PWD", fs::current_path().c_str(), 1);
-            } else {
-                errno = 2;
-                perror("cd");
-            }
-        } else if (cmd == "exit") {
-            exit(0);
-        } else if (cmd == "which") {
-            std::string execName = (args+1)[0];
-            std::string execPath = findExecutablePath(execName);
-
-            auto it = std::find(builtins.begin(), builtins.end(), execName);
-
-            if (it != builtins.end()) {
-                std::cout << execName << ": shell built-in command" << std::endl;
-            } else if (!execPath.empty()) {
-                std::cout << trim(execPath) << std::endl;
-            } else {
-                std::cout << execName << " not found" << std::endl;
-            }
-        } else if (cmd == "parseexampleini") {
-            IniData iniData = parseIniFile("example.ini");
-            for (const auto& section : iniData) {
-                std::cout << "section " << section.first << "\n";
-                for (const auto& entry : section.second) {
-                    std::cout << "key " << entry.first << ", value " << getIniValue(iniData, section.first, entry.first) << "\n";
+        args = const_cast<char **>(cstringTokens.data());
+        // FIXME: are some of these vectors redundant
+        // FIXME: add support for quotes and escaping
+        std::vector<char *> command;
+        for (char **arg = args; *arg != nullptr; ++arg) {
+            if (strcmp(*arg, "||") == 0) {
+                command.push_back(nullptr);
+                if (command.at(0) == nullptr){
+                    printf("%s: Syntax error\n", *argv);
+                    command.clear();
+                    break;
                 }
+                if (runCommand(command.data()) != 0) {
+                    command.clear();
+                    continue;
+                }
+                command.clear();
+                break;
+            } else if (strcmp(*arg, ";") == 0) {
+                command.push_back(nullptr);
+                if (command.at(0) == nullptr){
+                    //there is no error with just a semicolon
+                    command.clear();
+                    break;
+                }
+                runCommand(command.data());
+                command.clear();
+                continue;
+            } else if (strcmp(*arg, "&&") == 0) {
+                command.push_back(nullptr);
+                if (command.at(0) == nullptr){
+                    printf("%s: Syntax error\n", *argv);
+                    command.clear();
+                    break;
+                }
+                if (runCommand(command.data()) == 0) {
+                    command.clear();
+                    continue;
+                }
+                command.clear();
+                break;
+            } else {
+                command.push_back(*arg);
             }
-            saveIniFile(getDefaultConfig(), "output.ini");
-        } else {
-            shellexec(cmd, args);
+        }
+        // run command if no thingiers were found
+        if (command.size() > 0 && command.at(0)!=nullptr) {
+            command.push_back(nullptr);
+            runCommand(command.data());
         }
     }
-    
+
     return 0;
 }
