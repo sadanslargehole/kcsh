@@ -54,7 +54,6 @@ int main([[gnu::unused]] int argc, char** argv) {
 
         char **args;
 
-
         std::string prompt = parsePromptFormat(getIniValue(settings, "prompt", "format"), prompt_character, cwd, cwd_color,
                                                 user, user_color, hostname, hostname_color);
 
@@ -72,6 +71,16 @@ int main([[gnu::unused]] int argc, char** argv) {
         std::vector<const char *> cstringTokens = cstringArray(tokens);
         cmd = cstringTokens[0];
         args = const_cast<char **>(cstringTokens.data());
+
+        for (int i = 0; args[i] != nullptr; ++i) {
+            std::string modifiedArgument = std::string(args[i]);
+            modifiedArgument = replaceSubstring(modifiedArgument, "~", homePath());
+            char* modifiedArgumentCstr = new char[modifiedArgument.size() + 1];
+            std::strcpy(modifiedArgumentCstr, modifiedArgument.c_str());
+
+            args[i] = modifiedArgumentCstr;
+        }
+
         // FIXME: are some of these vectors redundant
         // FIXME: add support for quotes and escaping
         std::vector<char *> command;
