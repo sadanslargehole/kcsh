@@ -14,10 +14,13 @@
 #include <string>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <unordered_map>
 
 namespace fs = std::filesystem;
 
-int main(int argc, char** argv) {
+std::unordered_map<std::string, std::string> shellVars;
+// NOLINTNEXTLINE
+int main(int argc, char **argv) {
 
     setenv("OLDPWD", fs::current_path().c_str(), 1);
     setenv("PWD", fs::current_path().c_str(), 1);
@@ -50,76 +53,152 @@ int main(int argc, char** argv) {
         std::string hostname        = trim(sysexec("cat /proc/sys/kernel/hostname"));
         std::string hostname_color  = getIniValue(settings, "colors", "hostname");;
 
-        std::string cmd = "";
-
-        char **args;
-
+        std::string formattedchar = prompt_color + prompt_character + " ";
+        std::string formattedcwd = prettyPath(cwd_color + cwd);
+        std::string formatteduser = user_color + user;
+        std::string formattedhost = hostname_color + hostname;
 
         std::string prompt = parsePromptFormat(getIniValue(settings, "prompt", "format"), prompt_character, cwd, cwd_color,
                                                 user, user_color, hostname, hostname_color);
 
         std::cout << prompt;
 
+        std::string cmd = "";
+
         std::getline(std::cin, cmd);
         if (std::cin.eof()) {
-            exit(0);
+            _exit(0);
         }
-        std::vector<std::string> tokens = split(&cmd);
-        if (tokens.empty()) {
+        if (cmd.empty()) {
             continue;
         }
-
-        std::vector<const char *> cstringTokens = cstringArray(tokens);
-        cmd = cstringTokens[0];
-        args = const_cast<char **>(cstringTokens.data());
-        // FIXME: are some of these vectors redundant
-        // FIXME: add support for quotes and escaping
-        std::vector<char *> command;
-        for (char **arg = args; *arg != nullptr; ++arg) {
-            if (strcmp(*arg, "||") == 0) {
-                command.push_back(nullptr);
-                if (command.at(0) == nullptr){
-                    printf("%s: Syntax error\n", *argv);
-                    command.clear();
+        // all the chars parsed so far
+        std::string soFar;
+        // the name of the env var(if found)
+        std::string envName;
+        // value of env var (if found)
+        std::string envValue;
+        // is the env var a quoted string
+        bool envQuote = false;
+        // are we parsing an env var
+        bool inEnv = false;
+        // can we set an env var
+        bool canEnv = true;
+        bool isSessionVar = false;
+        for (char *in = cmd.data(); *in != '\0'; in++) {
+            if (envQuote) {
+                envValue += *in;
+                if (*(in + 2) == '\0') {
+                    isSessionVar = true;
                     break;
+                } else if (*(in + 1) == '"') {
+                    inEnv = false;
+                    envQuote = false;
+                    // fix whitespace messing up command
+                    while (*(in + 1) == ' ') {
+                        in++;
+                    }
                 }
-                if (runCommand(command.data()) != 0) {
-                    command.clear();
-                    continue;
-                }
-                command.clear();
-                break;
-            } else if (strcmp(*arg, ";") == 0) {
-                command.push_back(nullptr);
-                if (command.at(0) == nullptr){
-                    //there is no error with just a semicolon
-                    command.clear();
-                    break;
-                }
-                runCommand(command.data());
-                command.clear();
                 continue;
-            } else if (strcmp(*arg, "&&") == 0) {
-                command.push_back(nullptr);
-                if (command.at(0) == nullptr){
-                    printf("%s: Syntax error\n", *argv);
-                    command.clear();
+            } else if (inEnv) {
+                envValue += *in;
+                // if the next char is null, we need to set the var for the
+                // session, not just for the program that might be run
+                if (*(in + 1) == '\0') {
+                    isSessionVar = true;
                     break;
+                } else if (*(in + 1) == ' ') {
+                    inEnv = false;
+                    // fix whitespace messing up command
+                    while (*(in + 1) == ' ') {
+                        in++;
+                    }
                 }
-                if (runCommand(command.data()) == 0) {
-                    command.clear();
+                continue;
+            }
+            if (canEnv && *in == '=') {
+                envName = soFar;
+                soFar.clear();
+                inEnv = true;
+                if (*(in + 1) == '"') {
+                    envQuote = true;
+                    in++;
+                }
+
+                // dont mistake another equals sign somewhere else for an env
+                // var
+                canEnv = false;
+                continue;
+            }
+            if (*in == ' ' && !(soFar.empty())) {
+                // if we encouter a space, we will no longer parse an env value
+                canEnv = false;
+            }
+            if (*in == ';') {
+                runCommand(
+                    const_cast<char **>(cstringArray(split(soFar)).data()),
+                    envName.data(), envValue.data());
+                canEnv = true;
+                soFar.clear();
+                envName.clear();
+                envValue.clear();
+                // fix whitespace messing up command
+                while (*(in + 1) == ' ') {
+                    in++;
+                }
+                continue;
+            } else if (*in == '&' && *(in + 1) == '&') {
+                if (runCommand(
+                        const_cast<char **>(cstringArray(split(soFar)).data()),
+                        envName.data(), envValue.data()) == 0) {
+                    envName.clear();
+                    envValue.clear();
+                    soFar.clear();
+                    // increment pointer so we dont add `&` to the command thing
+                    // to call
+                    in++;
+                    // fix whitespace messing up command
+                    while (*(in + 1) == ' ') {
+                        in++;
+                    }
                     continue;
                 }
-                command.clear();
+                envValue.clear();
+                envName.clear();
+                soFar.clear();
                 break;
-            } else {
-                command.push_back(*arg);
+            } else if (*in == '|' && *(in + 1) == '|') {
+                if (runCommand(
+                        const_cast<char **>(cstringArray(split(soFar)).data()),
+                        envName.data(), envValue.data()) != 0) {
+                    envName.clear();
+                    envValue.clear();
+                    soFar.clear();
+                    // increment pointer so we dont add `|` to the command thing
+                    // to call
+                    in++;
+                    // fix whitespace messing up command
+                    while (*(in + 1) == ' ') {
+                        in++;
+                    }
+                    continue;
+                }
+                envValue.clear();
+                envName.clear();
+                soFar.clear();
+                break;
             }
+            soFar += *in;
         }
-        // run command if no thingiers were found
-        if (command.size() > 0 && command.at(0)!=nullptr) {
-            command.push_back(nullptr);
-            runCommand(command.data());
+        // post parseing options
+        if (isSessionVar) {
+            shellVars[envName] = envValue;
+        } else if (!envName.empty()) {
+            runCommand(const_cast<char **>(cstringArray(split(soFar)).data()),
+                       envName.data(), envValue.data());
+        } else if (!soFar.empty()) {
+            runCommand(const_cast<char **>(cstringArray(split(soFar)).data()),
+                       (char **)nullptr, (char **)nullptr);
         }
     }
 
