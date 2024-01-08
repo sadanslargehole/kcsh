@@ -97,16 +97,6 @@ inline int runCommand(char **args) {
             std::cout << execName << " not found" << std::endl;
             return 1;
         }
-    } else if (cmd == "parseexampleini") {
-        IniData iniData = parseIniFile("example.ini");
-        for (const auto &section : iniData) {
-            std::cout << "section " << section.first << "\n";
-            for (const auto &entry : section.second) {
-                std::cout << "key " << entry.first << ", value " << entry.second.second
-                          << "\n";
-            }
-        }
-        return 0;
     } else {
         return WEXITSTATUS(shellexec(cmd, args));
     }
