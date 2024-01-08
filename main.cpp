@@ -17,7 +17,7 @@
 
 namespace fs = std::filesystem;
 
-int main(int argc, char** argv) {
+int main([[gnu::unused]] int argc, char** argv) {
 
     setenv("OLDPWD", fs::current_path().c_str(), 1);
     setenv("PWD", fs::current_path().c_str(), 1);

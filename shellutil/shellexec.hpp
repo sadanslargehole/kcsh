@@ -19,8 +19,7 @@ const std::vector<std::string> builtins = {
     "cd", "exit", "which",
     "parseexampleini"}; // Remember to add your builtins!!!
 
-inline int shellexec(std::string cmd, char **args,
-                     char **environment = environ) {
+inline int shellexec(std::string cmd, char **args) {
 
     const char *command = cmd.c_str();
 
@@ -103,7 +102,7 @@ inline int runCommand(char **args) {
         for (const auto &section : iniData) {
             std::cout << "section " << section.first << "\n";
             for (const auto &entry : section.second) {
-                std::cout << "key " << entry.first << ", value " << entry.second
+                std::cout << "key " << entry.first << ", value " << entry.second.second
                           << "\n";
             }
         }
