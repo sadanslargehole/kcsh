@@ -119,6 +119,7 @@ int main(int argc, char **argv) {
                     }
                     if (*in == ';') {
                         soFar.clear();
+                        setSessionVar(envName, envValue);
                         inEnv = false;
                         canEnv = true;
                         continue;
@@ -169,6 +170,8 @@ int main(int argc, char **argv) {
                 continue;
             }
             if (canEnv && *in == '=' && !escape) {
+                envName.clear();
+                envValue.clear();
                 envName = soFar;
                 soFar.clear();
                 inEnv = true;
