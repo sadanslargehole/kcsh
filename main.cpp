@@ -12,6 +12,7 @@
 #include <cstring>
 #include <filesystem>
 #include <iostream>
+#include <regex>
 #include <string>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -95,6 +96,9 @@ int main(int argc, char **argv) {
         bool escape = false;
         for (char *in = cmd.data(); *in != '\0'; in++) {
             if (*in == '\\') {
+                if (escape){
+                    soFar+= '\\';
+                }
                 escape = !escape;
                 continue;
             }
@@ -145,22 +149,28 @@ int main(int argc, char **argv) {
             }
             if (*in == '$' && !escape) {
                 in++;
+                if (!std::regex_match(in, std::regex("^[a-zA-Z_].*"))) {
+                    in -= 2;
+                    continue;
+                }
                 std::string sVar = "";
                 while (*in != 0x0 && *in != ' ') {
+                    if (!(std::regex_match(in, std::regex("^[a-zA-Z0-9_].*")))) {
+                        break;
+                    }
                     sVar += *in;
                     in++;
                 }
+                // this fixes werid behaivor with the loops increment
+                in--;
                 // make this its own function?
 
                 if (shellVars.contains(sVar)) {
                     soFar.append(shellVars[sVar]);
-                    continue;
                 } else if (std::getenv(sVar.c_str())) {
                     auto fromEnv = std::getenv(sVar.c_str());
                     soFar.append(fromEnv);
-                    continue;
                 }
-                soFar.append(sVar);
                 continue;
             }
             if (*in == ' ' && !(soFar.empty())) {
