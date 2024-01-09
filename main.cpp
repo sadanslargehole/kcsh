@@ -17,12 +17,13 @@
 
 namespace fs = std::filesystem;
 
+fs::path settingsDir = homePath().string() + "/.config/kcsh/";
+fs::path themesDir   = settingsDir.string() + "/themes/";
+
 int main([[gnu::unused]] int argc, char** argv) {
 
     setenv("OLDPWD", fs::current_path().c_str(), 1);
     setenv("PWD", fs::current_path().c_str(), 1);
-    fs::path settingsDir = homePath().string() + "/.config/kcsh/";
-    fs::path themesDir   = settingsDir.string() + "/themes/";
     
     IniData settings;
     IniData theme;
@@ -44,6 +45,7 @@ int main([[gnu::unused]] int argc, char** argv) {
 
     fs::path themePath = themesDir.string() + "/" + getIniValue(settings, "appearance", "theme") + ".ini";
     theme = parseIniFile(themePath);
+    setenv("KCSH_THEME", replaceSubstring(themePath.filename(), ".ini", "").c_str(), true);
     
     if (theme.empty()) {
         #ifdef NDEBUG

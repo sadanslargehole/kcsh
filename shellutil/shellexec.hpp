@@ -1,23 +1,27 @@
 #ifndef KCSH_SHELLEXEC
 #define KCSH_SHELLEXEC
 
+#include "colors.hpp"
 #include "settingsutil.hpp"
 #include "stringutil.hpp"
 #include "sysutil.hpp"
 #include <algorithm>
+#include <asm-generic/errno-base.h>
 #include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <iostream>
 #include <string>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <utility>
 #include <vector>
 
 namespace fs = std::filesystem;
 
 const std::vector<std::string> builtins = {
     "cd", "exit", "which",
-    "parseexampleini"}; // Remember to add your builtins!!!
+    "kcshthemes", "settheme"}; // Remember to add your builtins!!!
 
 inline int shellexec(std::string cmd, char **args) {
 
@@ -97,6 +101,29 @@ inline int runCommand(char **args) {
             std::cout << execName << " not found" << std::endl;
             return 1;
         }
+    } else if (cmd == "kcshthemes") {
+        std::string selected_theme = getenv("KCSH_THEME");
+        if (selected_theme.empty()) selected_theme = "default";
+
+        for (const auto& file : fs::directory_iterator(themesDir)) {
+            std::string themename = replaceSubstring(file.path().filename().string(), ".ini", "");
+            std::cout << themename << " " << (selected_theme == themename ? FG_GREEN + BOLD + "✓" + RESET : "") << std::endl;
+        }
+        return 0;
+    } else if (cmd == "settheme") {
+        std::string theme = (args + 1)[0];
+        IniData settings = parseIniFile(settingsDir.string() + "/kcsh_config.ini");
+
+        if (!fs::exists(themesDir.string() + "/" + theme + ".ini") ||
+            !fs::is_regular_file(themesDir.string() + "/" + theme + ".ini")) {
+                std::cout << "theme " << theme << " does not exist in " << themesDir.string() << std::endl;
+                return ENOENT;
+            }
+
+        settings["appearance"]["theme"] = std::make_pair(theme, settings["appearance"]["theme"].second);
+        saveIniFile(settings, settingsDir.string() + "/kcsh_config.ini");
+        std::cout << "changed theme, restart for changes to take effect" << std::endl;
+        return 0;
     } else {
         return WEXITSTATUS(shellexec(cmd, args));
     }

@@ -6,12 +6,18 @@
 #include <sstream>
 #include <map>
 #include <regex>
+#include <filesystem>
 #include "colors.hpp"
 #include "stringutil.hpp"
 
 typedef std::string string;
 
 using IniData = std::map<std::string, std::map<std::string, std::pair<std::string, std::string>>>;
+
+namespace fs = std::filesystem;
+
+extern fs::path settingsDir;
+extern fs::path themesDir;
 
 inline std::string escapeToReadable(const std::string& input) {
     std::ostringstream result;
@@ -101,6 +107,7 @@ inline IniData getDefaultConfig() {
 inline IniData getDefaultTheme() {
     IniData defaultTheme;
 
+    defaultTheme["info"]["name"] = std::make_pair("Default", "theme name");
     defaultTheme["prompt"]["promptcharacter"] = std::make_pair("$", "");
     defaultTheme["prompt"]["format"] = std::make_pair("%BOLD%[%COLOREDUSER%%RESET%%BOLD%@%COLOREDHOST%%RESET%%BOLD%]%RESET% %COLOREDPATH% %RESET%%NEWLINE%%PROMPTCHARACTER%",
     "Prompt format. Available placeholders: \n\
