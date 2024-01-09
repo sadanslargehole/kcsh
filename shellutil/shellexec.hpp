@@ -1,32 +1,29 @@
 #ifndef KCSH_SHELLEXEC
 #define KCSH_SHELLEXEC
 
+#include "colors.hpp"
 #include "settingsutil.hpp"
 #include "stringutil.hpp"
 #include "sysutil.hpp"
-#include "vecutil.hpp"
 #include <algorithm>
-#include <cstddef>
+#include <asm-generic/errno-base.h>
 #include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <filesystem>
-#include <iostream>
 #include <string>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <unordered_map>
+#include <utility>
 #include <vector>
+#include <unordered_map>
 
 namespace fs = std::filesystem;
-extern std::unordered_map<std::string, std::string> shellVars;
 
 const std::vector<std::string> builtins = {
-    "cd", "exit", "which", "export",
-    "parseexampleini"}; // Remember to add your builtins!!!
+    "cd", "exit", "which","export",
+    "kcshthemes", "settheme"}; // Remember to add your builtins!!!
 
-inline int shellexec(std::string cmd, char **args,
-                     char **environment = environ) {
+extern std::unordered_map<std::string, std::string> shellVars;
+
+inline int shellexec(std::string cmd, char **args, char** environment = environ) {
 
     const char *command = cmd.c_str();
 
@@ -165,16 +162,28 @@ inline int runCommand(char **args, char *envName[], char *envValue[]) {
             std::cout << execName << " not found" << std::endl;
             return 1;
         }
-    } else if (cmd == "parseexampleini") {
-        IniData iniData = parseIniFile("example.ini");
-        for (const auto &section : iniData) {
-            std::cout << "section " << section.first << "\n";
-            for (const auto &entry : section.second) {
-                std::cout << "key " << entry.first << ", value "
-                          << getIniValue(iniData, section.first, entry.first)
-                          << "\n";
-            }
+    } else if (cmd == "kcshthemes") {
+        std::string selected_theme = getenv("KCSH_THEME");
+        if (selected_theme.empty()) selected_theme = "default";
+
+        for (const auto& file : fs::directory_iterator(themesDir)) {
+            std::string themename = replaceSubstring(file.path().filename().string(), ".ini", "");
+            std::cout << themename << " " << (selected_theme == themename ? FG_GREEN + BOLD + "✓" + RESET : "") << std::endl;
         }
+        return 0;
+    } else if (cmd == "settheme") {
+        std::string theme = (args + 1)[0];
+        IniData settings = parseIniFile(settingsDir.string() + "/kcsh_config.ini");
+
+        if (!fs::exists(themesDir.string() + "/" + theme + ".ini") ||
+            !fs::is_regular_file(themesDir.string() + "/" + theme + ".ini")) {
+                std::cout << "theme " << theme << " does not exist in " << themesDir.string() << std::endl;
+                return ENOENT;
+            }
+
+        settings["appearance"]["theme"] = std::make_pair(theme, settings["appearance"]["theme"].second);
+        saveIniFile(settings, settingsDir.string() + "/kcsh_config.ini");
+        std::cout << "changed theme, restart for changes to take effect" << std::endl;
         return 0;
     } else {
         if (envName == nullptr || *envName == nullptr)
