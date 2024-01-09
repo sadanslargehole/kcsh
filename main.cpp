@@ -1,4 +1,5 @@
 #include "shellutil/colors.hpp"
+#include "shellutil/envUtil.hpp"
 #include "shellutil/settingsutil.hpp"
 #include "shellutil/shellexec.hpp"
 #include "shellutil/stringutil.hpp"
@@ -95,13 +96,6 @@ int main(int argc, char **argv) {
         // state for if we are escaped
         bool escape = false;
         for (char *in = cmd.data(); *in != '\0'; in++) {
-            if (*in == '\\') {
-                if (escape){
-                    soFar+= '\\';
-                }
-                escape = !escape;
-                continue;
-            }
             if (envQuote) {
                 envValue += *in;
                 if (*(in + 2) == '\0') {
@@ -118,6 +112,39 @@ int main(int argc, char **argv) {
                 }
                 continue;
             } else if (inEnv) {
+                if (!escape) {
+                    if (*in == '\\') {
+                        escape = true;
+                        continue;
+                    }
+                    if (*in == ';') {
+                        soFar.clear();
+                        inEnv = false;
+                        canEnv = true;
+                        continue;
+                    }
+                    if (*(in + 1) != 0x0) {
+                        if (*in == '&' && *(in + 1) == '&') {
+                            soFar.clear();
+                            setSessionVar(envName, envValue);
+                            canEnv = true;
+                            inEnv = false;
+                            in++;
+                            continue;
+                        }
+                        if (*in == '|' && *(in + 1) == '|') {
+                            soFar.clear();
+                            setSessionVar(envName, envValue);
+                            canEnv = true;
+                            inEnv = false;
+                            in++;
+                            continue;
+                        }
+                    }
+
+                } else
+                    escape = false;
+
                 envValue += *in;
                 // if the next char is null, we need to set the var for the
                 // session, not just for the program that might be run
@@ -130,10 +157,18 @@ int main(int argc, char **argv) {
                     while (*(in + 1) == ' ') {
                         in++;
                     }
+                    continue;
                 }
+            }
+
+            if (*in == '\\') {
+                if (escape) {
+                    soFar += '\\';
+                }
+                escape = !escape;
                 continue;
             }
-            if (canEnv && *in == '=') {
+            if (canEnv && *in == '=' && !escape) {
                 envName = soFar;
                 soFar.clear();
                 inEnv = true;
@@ -155,7 +190,7 @@ int main(int argc, char **argv) {
                 }
                 std::string sVar = "";
                 while (*in != 0x0 && *in != ' ') {
-                    if (!(std::regex_match(in, std::regex("^[a-zA-Z0-9_].*")))) {
+                    if (!std::regex_match(in, std::regex("^[a-zA-Z0-9_].*"))) {
                         break;
                     }
                     sVar += *in;
@@ -237,11 +272,7 @@ int main(int argc, char **argv) {
         }
         // post parseing options
         if (isSessionVar) {
-            if (std::getenv(envName.c_str()) != NULL) {
-                setenv(envName.c_str(), envValue.c_str(), 1);
-
-            } else
-                shellVars[envName] = envValue;
+            setSessionVar(envName, envValue);
         } else if (!envName.empty()) {
             runCommand(const_cast<char **>(cstringArray(split(soFar)).data()),
                        envName.data(), envValue.data());
@@ -251,5 +282,5 @@ int main(int argc, char **argv) {
         }
     }
 
-    return 0;
+return 0;
 }
