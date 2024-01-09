@@ -90,12 +90,19 @@ inline IniData parseIniFile(const std::string& filename) {
     return iniData;
 }
 
-
 inline IniData getDefaultConfig() {
     IniData defaultConfig;
 
-    defaultConfig["prompt"]["promptcharacter"] = std::make_pair("$", "");
-    defaultConfig["prompt"]["format"] = std::make_pair("%BOLD%[%COLOREDUSER%%RESET%%BOLD%@%COLOREDHOST%%RESET%%BOLD%]%RESET% %COLOREDPATH% %RESET%%NEWLINE%%PROMPTCHARACTER%",
+    defaultConfig["appearance"]["theme"] = std::make_pair("default", "run kcshthemes to see what themes are available");
+
+    return defaultConfig;
+}
+
+inline IniData getDefaultTheme() {
+    IniData defaultTheme;
+
+    defaultTheme["prompt"]["promptcharacter"] = std::make_pair("$", "");
+    defaultTheme["prompt"]["format"] = std::make_pair("%BOLD%[%COLOREDUSER%%RESET%%BOLD%@%COLOREDHOST%%RESET%%BOLD%]%RESET% %COLOREDPATH% %RESET%%NEWLINE%%PROMPTCHARACTER%",
     "Prompt format. Available placeholders: \n\
 ; %COLOREDUSER% and %USER% for the formatted and unformatted user, respectively\n\
 ; %COLOREDHOST% and %HOST% for the formatted and unformatted host, respectively\n\
@@ -106,11 +113,11 @@ inline IniData getDefaultConfig() {
 ; %ULINE% will make following text underlined\n\
 ; %RESET% will reset text formatting\n");
 
-    defaultConfig["colors"]["path"] = std::make_pair(FG_BLUE, "color code/s for path \n; see https://keli5.github.io/kcsh-resources/colors.html for help with color codes");
-    defaultConfig["colors"]["hostname"] = std::make_pair(FG_MAGENTA, "color code/s for hostname");
-    defaultConfig["colors"]["username"] = std::make_pair(FG_RED, "color code/s for username");
+    defaultTheme["colors"]["path"] = std::make_pair(FG_BLUE, "color code/s for path \n; see https://keli5.github.io/kcsh-resources/colors.html for help with color codes");
+    defaultTheme["colors"]["hostname"] = std::make_pair(FG_MAGENTA, "color code/s for hostname");
+    defaultTheme["colors"]["username"] = std::make_pair(FG_RED, "color code/s for username");
 
-    return defaultConfig;
+    return defaultTheme;
 }
 
 inline void saveIniFile(const IniData& iniData, const std::string& filename) {
@@ -175,6 +182,5 @@ inline std::string parsePromptFormat(std::string ptemplate, std::string prompt_c
 
         return promptOutput;
 }
-
 
 #endif

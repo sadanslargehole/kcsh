@@ -21,11 +21,16 @@ int main([[gnu::unused]] int argc, char** argv) {
 
     setenv("OLDPWD", fs::current_path().c_str(), 1);
     setenv("PWD", fs::current_path().c_str(), 1);
-    fs::path settingsDir = homePath().concat("/.config/kcsh");
+    fs::path settingsDir = homePath().string() + "/.config/kcsh/";
+    fs::path themesDir   = settingsDir.string() + "/themes/";
     
     IniData settings;
+    IniData theme;
 
+    fs::create_directory(homePath().string() + "/.config");
     fs::create_directory(settingsDir);
+    fs::create_directory(themesDir);
+
     settings = parseIniFile(settingsDir.string() + "/kcsh_config.ini");
     
     if (settings.empty()) {
@@ -33,28 +38,40 @@ int main([[gnu::unused]] int argc, char** argv) {
             std::cout << "Creating default config in " + settingsDir.string() << std::endl;
         #endif
         settings = getDefaultConfig();
+
         saveIniFile(settings, settingsDir.string() + "/kcsh_config.ini");
+    }
+
+    fs::path themePath = themesDir.string() + "/" + getIniValue(settings, "appearance", "theme") + ".ini";
+    theme = parseIniFile(themePath);
+    
+    if (theme.empty()) {
+        #ifdef NDEBUG
+            std::cout << "Creating " + getIniValue(settings, "appearance", "theme") + " theme in " + themesDir.string() << std::endl;
+        #endif
+        theme = getDefaultTheme();
+        saveIniFile(theme, themesDir.string() + "/default.ini");
     }
 
     while (true) {
 
         std::string prompt_color        = FG_WHITE;
-        std::string prompt_character    = getIniValue(settings, "prompt", "promptcharacter") + " ";
+        std::string prompt_character    = getIniValue(theme, "prompt", "promptcharacter") + " ";
 
         std::string cwd         = prettyPath(trim(fs::current_path()));
-        std::string cwd_color   = getIniValue(settings, "colors", "path");
+        std::string cwd_color   = getIniValue(theme, "colors", "path");
 
         std::string user        = trim(sysexec("whoami"));
-        std::string user_color  = getIniValue(settings, "colors", "username");
+        std::string user_color  = getIniValue(theme, "colors", "username");
 
         std::string hostname        = trim(sysexec("cat /proc/sys/kernel/hostname"));
-        std::string hostname_color  = getIniValue(settings, "colors", "hostname");;
+        std::string hostname_color  = getIniValue(theme, "colors", "hostname");;
 
         std::string cmd = "";
 
         char **args;
 
-        std::string prompt = parsePromptFormat(getIniValue(settings, "prompt", "format"), prompt_character, cwd, cwd_color,
+        std::string prompt = parsePromptFormat(getIniValue(theme, "prompt", "format"), prompt_character, cwd, cwd_color,
                                                 user, user_color, hostname, hostname_color);
 
         std::cout << prompt;
