@@ -119,6 +119,12 @@ inline int runCommand(char **args, char *envName[], char *envValue[]) {
         if (*(args + 1) == nullptr) {
             return 0;
         }
+        if (strcmp(*(args+1), "-p") == 0){
+            for(char** vars = environ; *vars !=nullptr;vars++){
+                std::cout << "export " << *vars << '\n';
+            }
+            return 0;
+        }
         bool willSet = false;
         std::string var;
         std::string val = "";

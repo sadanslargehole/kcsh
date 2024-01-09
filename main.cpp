@@ -6,6 +6,7 @@
 #include "shellutil/vecutil.hpp"
 #include <algorithm>
 #include <cerrno>
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -25,41 +26,46 @@ int main(int argc, char **argv) {
     setenv("OLDPWD", fs::current_path().c_str(), 1);
     setenv("PWD", fs::current_path().c_str(), 1);
     fs::path settingsDir = homePath().concat("/.config/kcsh");
-    
+
     IniData settings;
 
     fs::create_directory(settingsDir);
     settings = parseIniFile(settingsDir.string() + "/kcsh_config.ini");
-    
+
     if (settings.empty()) {
-        #ifdef NDEBUG
-            std::cout << "Creating default config in " + settingsDir.string() << std::endl;
-        #endif
+#ifdef NDEBUG
+        std::cout << "Creating default config in " + settingsDir.string()
+                  << std::endl;
+#endif
         settings = getDefaultConfig();
         saveIniFile(settings, settingsDir.string() + "/kcsh_config.ini");
     }
 
     while (true) {
 
-        std::string prompt_color        = FG_WHITE;
-        std::string prompt_character    = getIniValue(settings, "prompt", "promptcharacter") + " ";
+        std::string prompt_color = FG_WHITE;
+        std::string prompt_character =
+            getIniValue(settings, "prompt", "promptcharacter") + " ";
 
-        std::string cwd         = prettyPath(trim(fs::current_path()));
-        std::string cwd_color   = getIniValue(settings, "colors", "path");
+        std::string cwd = prettyPath(trim(fs::current_path()));
+        std::string cwd_color = getIniValue(settings, "colors", "path");
 
-        std::string user        = trim(sysexec("whoami"));
-        std::string user_color  = getIniValue(settings, "colors", "username");
+        std::string user = trim(sysexec("whoami"));
+        std::string user_color = getIniValue(settings, "colors", "username");
 
-        std::string hostname        = trim(sysexec("cat /proc/sys/kernel/hostname"));
-        std::string hostname_color  = getIniValue(settings, "colors", "hostname");;
+        std::string hostname = trim(sysexec("cat /proc/sys/kernel/hostname"));
+        std::string hostname_color =
+            getIniValue(settings, "colors", "hostname");
+        ;
 
         std::string formattedchar = prompt_color + prompt_character + " ";
         std::string formattedcwd = prettyPath(cwd_color + cwd);
         std::string formatteduser = user_color + user;
         std::string formattedhost = hostname_color + hostname;
 
-        std::string prompt = parsePromptFormat(getIniValue(settings, "prompt", "format"), prompt_character, cwd, cwd_color,
-                                                user, user_color, hostname, hostname_color);
+        std::string prompt = parsePromptFormat(
+            getIniValue(settings, "prompt", "format"), prompt_character, cwd,
+            cwd_color, user, user_color, hostname, hostname_color);
 
         std::cout << prompt;
 
@@ -85,7 +91,13 @@ int main(int argc, char **argv) {
         // can we set an env var
         bool canEnv = true;
         bool isSessionVar = false;
+        // state for if we are escaped
+        bool escape = false;
         for (char *in = cmd.data(); *in != '\0'; in++) {
+            if (*in == '\\') {
+                escape = !escape;
+                continue;
+            }
             if (envQuote) {
                 envValue += *in;
                 if (*(in + 2) == '\0') {
@@ -94,6 +106,7 @@ int main(int argc, char **argv) {
                 } else if (*(in + 1) == '"') {
                     inEnv = false;
                     envQuote = false;
+                    in++;
                     // fix whitespace messing up command
                     while (*(in + 1) == ' ') {
                         in++;
@@ -128,6 +141,26 @@ int main(int argc, char **argv) {
                 // dont mistake another equals sign somewhere else for an env
                 // var
                 canEnv = false;
+                continue;
+            }
+            if (*in == '$' && !escape) {
+                in++;
+                std::string sVar = "";
+                while (*in != 0x0 && *in != ' ') {
+                    sVar += *in;
+                    in++;
+                }
+                // make this its own function?
+
+                if (shellVars.contains(sVar)) {
+                    soFar.append(shellVars[sVar]);
+                    continue;
+                } else if (std::getenv(sVar.c_str())) {
+                    auto fromEnv = std::getenv(sVar.c_str());
+                    soFar.append(fromEnv);
+                    continue;
+                }
+                soFar.append(sVar);
                 continue;
             }
             if (*in == ' ' && !(soFar.empty())) {
@@ -188,11 +221,17 @@ int main(int argc, char **argv) {
                 soFar.clear();
                 break;
             }
+            if (escape)
+                escape = false;
             soFar += *in;
         }
         // post parseing options
         if (isSessionVar) {
-            shellVars[envName] = envValue;
+            if (std::getenv(envName.c_str()) != NULL) {
+                setenv(envName.c_str(), envValue.c_str(), 1);
+
+            } else
+                shellVars[envName] = envValue;
         } else if (!envName.empty()) {
             runCommand(const_cast<char **>(cstringArray(split(soFar)).data()),
                        envName.data(), envValue.data());
