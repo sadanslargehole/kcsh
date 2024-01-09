@@ -50,7 +50,7 @@ int main([[gnu::unused]] int argc, char** argv) {
             std::cout << "Creating " + getIniValue(settings, "appearance", "theme") + " theme in " + themesDir.string() << std::endl;
         #endif
         theme = getDefaultTheme();
-        saveIniFile(theme, themesDir.string() + "/default.ini");
+        saveIniFile(theme, themePath);
     }
 
     while (true) {
