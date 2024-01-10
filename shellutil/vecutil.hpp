@@ -3,7 +3,6 @@
 
 #include <string>
 #include <vector>
-#include <unistd.h>
 
 inline std::vector<const char*> cstringArray(const std::vector<std::string>& strings) {
     std::vector<const char*> result;
