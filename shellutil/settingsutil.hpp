@@ -3,10 +3,12 @@
 
 #include <iostream>
 #include <fstream>
+#include <locale>
 #include <sstream>
 #include <map>
 #include <regex>
 #include <filesystem>
+#include <string>
 #include "colors.hpp"
 #include "stringutil.hpp"
 
@@ -39,7 +41,34 @@ inline std::string escapeToReadable(const std::string& input) {
     }
     return result.str();
 }
-
+//https://stackoverflow.com/questions/23461499/decimal-to-unicode-char-in-c
+inline char* getUnicodeChar(unsigned int code) {
+    char* chars = new char[5]();
+    if (code <= 0x7F) {
+        chars[0] = (code & 0x7F); chars[1] = '\0';
+    } else if (code <= 0x7FF) {
+        // one continuation byte
+        chars[1] = 0x80 | (code & 0x3F); code = (code >> 6);
+        chars[0] = 0xC0 | (code & 0x1F); chars[2] = '\0';
+    } else if (code <= 0xFFFF) {
+        // two continuation bytes
+        chars[2] = 0x80 | (code & 0x3F); code = (code >> 6);
+        chars[1] = 0x80 | (code & 0x3F); code = (code >> 6);
+        chars[0] = 0xE0 | (code & 0xF); chars[3] = '\0';
+    } else if (code <= 0x10FFFF) {
+        // three continuation bytes
+        chars[3] = 0x80 | (code & 0x3F); code = (code >> 6);
+        chars[2] = 0x80 | (code & 0x3F); code = (code >> 6);
+        chars[1] = 0x80 | (code & 0x3F); code = (code >> 6);
+        chars[0] = 0xF0 | (code & 0x7); chars[4] = '\0';
+    } else {
+        // unicode replacement character
+        chars[2] = 0xEF; chars[1] = 0xBF; chars[0] = 0xBD;
+        chars[3] = '\0';
+    }
+    return chars;
+    
+}
 inline std::string readableToEscape(const std::string& input) {
     std::ostringstream result;
     size_t i = 0;
@@ -50,7 +79,17 @@ inline std::string readableToEscape(const std::string& input) {
         } else if (input[i] == '\\' && input[i + 1] == ';') {
             result << ';';
             i += 2;
-        } else {
+        }else if (input[i] == '\\' && input[i+1] == 'u'){
+            std::string hex ="";
+            hex += input[i+2];
+            hex += input[i+3];
+            hex += input[i+4];
+            hex += input[i+5];
+            
+            result << getUnicodeChar(std::stoi(hex, nullptr, 16));
+            i+=6;
+        }
+        else {
             result << input[i];
             i++;
         }
