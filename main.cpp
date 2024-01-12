@@ -66,14 +66,15 @@ int main([[gnu::unused]] int argc, char **argv) {
   }
 
   while (true) {
-std::string prompt_color;
-    if (lastStatus!=0) {
-       prompt_color = FG_RED;
+    std::string prompt_color;
+    if (lastStatus != 0) {
+      prompt_color = FG_RED;
     } else {
       prompt_color = FG_WHITE;
     }
     std::string prompt_character =
-        prompt_color + getIniValue(theme, "prompt", "promptcharacter")+RESET + " ";
+        prompt_color + getIniValue(theme, "prompt", "promptcharacter") + RESET +
+        " ";
 
     std::string cwd = prettyPath(trim(fs::current_path()));
     std::string cwd_color = getIniValue(theme, "colors", "path");
@@ -189,6 +190,8 @@ std::string prompt_color;
         continue;
       }
       if (canEnv && *in == '=' && !escape) {
+        //TODO: add env name validation
+        
         envName.clear();
         envValue.clear();
         envName = soFar;
@@ -236,7 +239,8 @@ std::string prompt_color;
         canEnv = false;
       }
       if (*in == ';') {
-        runCommand(const_cast<char **>(cstringArray(split(soFar)).data()), envName.data(), envValue.data());
+        runCommand(const_cast<char **>(cstringArray(split(soFar)).data()),
+                   envName.data(), envValue.data());
         canEnv = true;
         soFar.clear();
         envName.clear();
@@ -247,8 +251,8 @@ std::string prompt_color;
         }
         continue;
       } else if (*in == '&' && *(in + 1) == '&') {
-        if (runCommand(const_cast<char **>(cstringArray(split(soFar)).data()), envName.data(),
-                       envValue.data()) == 0) {
+        if (runCommand(const_cast<char **>(cstringArray(split(soFar)).data()),
+                       envName.data(), envValue.data()) == 0) {
           envName.clear();
           envValue.clear();
           soFar.clear();
@@ -266,8 +270,8 @@ std::string prompt_color;
         soFar.clear();
         break;
       } else if (*in == '|' && *(in + 1) == '|') {
-        if (runCommand(const_cast<char **>(cstringArray(split(soFar)).data()), envName.data(),
-                       envValue.data()) != 0) {
+        if (runCommand(const_cast<char **>(cstringArray(split(soFar)).data()),
+                       envName.data(), envValue.data()) != 0) {
           envName.clear();
           envValue.clear();
           soFar.clear();
@@ -285,6 +289,27 @@ std::string prompt_color;
         soFar.clear();
         break;
       }
+      if (*in == '>' && *(in + 1) == '>' && !escape) {
+        // append to file
+        std::string fileName(in+2);
+        fileName = trim(fileName);
+        if(fs::is_directory(fileName)){
+          lastStatus = outToAppend(const_cast<char**>(cstringArray(split(soFar)).data()), fileName.c_str(), envName.data(), envValue.data());
+        }
+        #ifdef NDEBUG
+        std::cout << fileName << '\n';
+        #endif
+
+        soFar.clear();
+        std::cerr << "F";
+        break;
+      }
+      if (*in == '>' && !escape) {
+        // overwrite file
+      }
+      if (*in == '|' && !escape) {
+        //pipe 
+      }
       if (escape)
         escape = false;
       soFar += *in;
@@ -293,10 +318,13 @@ std::string prompt_color;
     if (isSessionVar) {
       setSessionVar(envName, envValue);
     } else if (!envName.empty()) {
-      lastStatus = runCommand(const_cast<char **>(cstringArray(split(soFar)).data()), envName.data(), envValue.data());
+      lastStatus =
+          runCommand(const_cast<char **>(cstringArray(split(soFar)).data()),
+                     envName.data(), envValue.data());
     } else if (!soFar.empty()) {
-      lastStatus = runCommand(const_cast<char **>(cstringArray(split(soFar)).data()), (char **)nullptr,
-                              (char **)nullptr);
+      lastStatus =
+          runCommand(const_cast<char **>(cstringArray(split(soFar)).data()),
+                     (char **)nullptr, (char **)nullptr);
     }
   }
 

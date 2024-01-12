@@ -7,7 +7,12 @@
 #include "sysutil.hpp"
 #include <algorithm>
 #include <asm-generic/errno-base.h>
+#include <cstddef>
 #include <cstdio>
+#include <cstring>
+#include <ios>
+#include <istream>
+#include <ostream>
 #include <string>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -18,7 +23,7 @@
 namespace fs = std::filesystem;
 
 const std::vector<std::string> builtins = {
-    "cd", "exit", "which","export",
+    "cd", "exit", "which","export","unset",
     "kcshthemes", "settheme"}; // Remember to add your builtins!!!
 
 extern std::unordered_map<std::string, std::string> shellVars;
@@ -67,6 +72,7 @@ inline std::vector<char *> prepEnv(char *namesToAdd[], char *valuesToAdd[]) {
     toRet.push_back(nullptr);
     return toRet;
 }
+
 inline int runCommand(char **args, char *envName[], char *envValue[]);
 inline int runCommand(char **args, char *envName, char *envValue) {
     char *v[2] = {envName, nullptr};
@@ -110,7 +116,10 @@ inline int runCommand(char **args, char *envName[], char *envValue[]) {
     } else if (cmd == "exit") {
         exit(0);
         return 0; // not sure if this is needed
-    } else if (cmd == "export") {
+    }else if (cmd == "unset"){
+        return 0;
+    }
+    else if (cmd == "export") {
         // TODO: impliment export -p (prints the export commands for all env
         // vars)
         if (*(args + 1) == nullptr) {
@@ -118,6 +127,12 @@ inline int runCommand(char **args, char *envName[], char *envValue[]) {
         }
         if (strcmp(*(args+1), "-p") == 0){
             for(char** vars = environ; *vars !=nullptr;vars++){
+                
+                for(char* sp = *vars; *sp!=0x0;sp++){
+                    if(*sp == ' '){
+                        
+                    }
+                }
                 std::cout << "export " << *vars << '\n';
             }
             return 0;
@@ -147,6 +162,9 @@ inline int runCommand(char **args, char *envName[], char *envValue[]) {
         }
 
     } else if (cmd == "which") {
+        if (*(args+1) == nullptr){
+            return 1;
+        }
         std::string execName = (args + 1)[0];
         std::string execPath = findExecutablePath(execName);
 
@@ -200,5 +218,56 @@ inline int runCommand(char **args, char *envName[], char *envValue[]) {
         }
         return exitStatus;
     }
+}
+inline int runCommand(char** args){
+    return runCommand(args, (char**) nullptr, (char**)nullptr);
+}
+//returns nullptr on error
+inline int* runPipe(char **one, char **two, char *envName[], char* envValue[]){
+    int* retVals= new int[2];
+    pid_t pid_1 = fork();
+    if(pid_1 <0){
+        perror("fork");
+        return nullptr;
+    }else if (pid_1 == 0) {
+        int out = dup(1);
+        pid_t pid_2 = fork();
+        if(pid_2 <0){
+            perror("fork 2");
+            exit(1);
+        }else if (pid_2 == 0) {
+            dup2(out, 0);
+            retVals[1] = runCommand(two);
+            _exit(1);
+        }else{
+            retVals[0] = runCommand(one, envName, envValue);
+            waitpid(pid_2, nullptr, 0);
+            _exit(1);
+        }
+    }else {
+        waitpid(pid_1, nullptr, 0);
+        return retVals;
+    }
+}
+inline int outToAppend(char** command,const char* fileName, char *envName, char *envValue){
+    FILE* out;
+    out = fopen(fileName, "a");
+    pid_t a = fork();
+    if (a<0){
+        perror("fork");
+        return 1;
+    }else if (a == 0){
+        dup2(fileno(out), 1);
+        runCommand(command, envName, envValue);
+        close(fileno(out));
+        _exit(1);
+    }else{
+        waitpid(a, nullptr, 0);
+    }
+    fclose(out);
+    return 0;
+}
+inline int outToFile(char **command, char *fileName, char *envName[], char *envValue[]){
+    return 0;
 }
 #endif
