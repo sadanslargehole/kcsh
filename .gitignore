@@ -6,3 +6,5 @@ core.*
 *.gitpod*
 #vscode local files
 .vscode
+#example plugin
+example.so

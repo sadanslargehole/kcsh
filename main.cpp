@@ -1,4 +1,5 @@
 #include "shellutil/colors.hpp"
+#include "shellutil/pluginloader.hpp"
 #include "shellutil/settingsutil.hpp"
 #include "shellutil/shellexec.hpp"
 #include "shellutil/stringutil.hpp"
@@ -19,6 +20,7 @@ namespace fs = std::filesystem;
 
 fs::path settingsDir = homePath().string() + "/.config/kcsh/";
 fs::path themesDir   = settingsDir.string() + "/themes/";
+extern std::vector<std::pair<std::string, Replacement>> promptReplacementMapping;
 
 int main([[gnu::unused]] int argc, char** argv) {
 
@@ -28,9 +30,22 @@ int main([[gnu::unused]] int argc, char** argv) {
     IniData settings;
     IniData theme;
 
+    fs::path pluginsPath = settingsDir.string() + "/plugins";
+
     fs::create_directory(homePath().string() + "/.config");
     fs::create_directory(settingsDir);
     fs::create_directory(themesDir);
+    fs::create_directory(pluginsPath);
+
+    PluginLoader pluginLoader;
+    for (const auto& entry : fs::directory_iterator(pluginsPath)) {
+        if (entry.path().filename().extension() == ".so") {
+            #ifdef NDEBUG
+                std::cout << "Loading plugin " << entry.path().string() << std::endl;
+            #endif
+            pluginLoader.loadPlugin(entry.path());
+        }
+    }
 
     settings = parseIniFile(settingsDir.string() + "/kcsh_config.ini");
     
@@ -74,7 +89,7 @@ int main([[gnu::unused]] int argc, char** argv) {
         char **args;
 
         std::string prompt = parsePromptFormat(getIniValue(theme, "prompt", "format"), prompt_character, cwd, cwd_color,
-                                                user, user_color, hostname, hostname_color);
+                                                user, user_color, hostname, hostname_color, pluginLoader);
 
         std::cout << prompt;
 

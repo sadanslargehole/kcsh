@@ -7,8 +7,13 @@
 #include <map>
 #include <regex>
 #include <filesystem>
+#include <utility>
+#include <variant>
+#include <vector>
 #include "colors.hpp"
 #include "stringutil.hpp"
+#include "../api/kcshplugin.hpp"
+#include "pluginloader.hpp"
 
 typedef std::string string;
 
@@ -172,9 +177,11 @@ inline std::string getIniValue(const IniData& iniData, const std::string& sectio
 inline std::string parsePromptFormat(std::string ptemplate, std::string prompt_character,
     std::string cwd, std::string cwd_color,
     std::string user, std::string user_color,
-    std::string host, std::string host_color) {
+    std::string host, std::string host_color,
+    PluginLoader loader) {
         // wow this is like hell actually
         std::string promptOutput = ptemplate;
+        // hard code to prevent plugins from fiddling with it and perform them first
         promptOutput = replaceSubstring(promptOutput, "%COLOREDUSER%", user_color + user);
         promptOutput = replaceSubstring(promptOutput, "%USER%", user);
         promptOutput = replaceSubstring(promptOutput, "%COLOREDHOST%", host_color + host);
@@ -186,6 +193,26 @@ inline std::string parsePromptFormat(std::string ptemplate, std::string prompt_c
         promptOutput = replaceSubstring(promptOutput, "%RESET%", RESET);
         promptOutput = replaceSubstring(promptOutput, "%BOLD%", BOLD);
         promptOutput = replaceSubstring(promptOutput, "%ULINE%", ULINE);
+        // and now everything else
+
+        for (const auto& pluginPair: loader.getPlugins()) {
+            KCSHPlugin* plugin = pluginPair.second;
+
+            for (const auto& replacementPair: plugin->promptReplacementMapping) {
+                std::string result;
+                std::visit([&result](const auto& value) {
+                    if constexpr (std::is_same_v<std::decay_t<decltype(value)>, std::string>) {
+                        result = value;
+                    }
+                    else if constexpr (std::is_invocable_r_v<std::string, decltype(value)>) {
+                        result = value();
+                    }
+                }, replacementPair.second);
+
+                promptOutput = replaceSubstring(promptOutput, replacementPair.first, result);
+            }
+
+        }
 
         return promptOutput;
 }
