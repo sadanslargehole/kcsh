@@ -15,6 +15,7 @@
 #include <string>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <limits.h>
 
 namespace fs = std::filesystem;
 
@@ -70,6 +71,17 @@ int main([[gnu::unused]] int argc, char** argv) {
         saveIniFile(theme, themePath);
     }
 
+    // Set $SHELL
+    char srlbuffer[PATH_MAX];
+    ssize_t len = readlink("/proc/self/exe", srlbuffer, sizeof(srlbuffer)-1);
+    if (len != -1) {
+        srlbuffer[len] = '\0';
+        setenv("SHELL", srlbuffer, 1);
+    } else {
+        std::cerr << "Not setting $SHELL - could not get absolute path";
+    }
+
+
     while (true) {
 
         std::string prompt_color        = FG_WHITE;
@@ -87,6 +99,8 @@ int main([[gnu::unused]] int argc, char** argv) {
         std::string cmd = "";
 
         char **args;
+
+
 
         std::string prompt = parsePromptFormat(getIniValue(theme, "prompt", "format"), prompt_character, cwd, cwd_color,
                                                 user, user_color, hostname, hostname_color, pluginLoader);
