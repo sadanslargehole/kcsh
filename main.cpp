@@ -109,6 +109,7 @@ int main([[gnu::unused]] int argc, char** argv) {
         for (int i = 0; args[i] != nullptr; ++i) {
             std::string modifiedArgument = std::string(args[i]);
             modifiedArgument = replaceSubstring(modifiedArgument, "~", homePath());
+            modifiedArgument = replaceEnvironmentVariables(modifiedArgument);
             char* modifiedArgumentCstr = new char[modifiedArgument.size() + 1];
             std::strcpy(modifiedArgumentCstr, modifiedArgument.c_str());
 

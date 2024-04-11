@@ -1,6 +1,7 @@
 #ifndef KCSH_STRINGUTIL
 #define KCSH_STRINGUTIL
 
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -72,5 +73,36 @@ inline std::string replaceSubstring(const std::string& original, const std::stri
 
     return result;
 }
+
+inline std::string replaceEnvironmentVariables(const std::string& input) {
+    std::string output;
+    size_t startPos = 0;
+    size_t dollarPos = input.find('$');
+    
+    while (dollarPos != std::string::npos) {
+        output += input.substr(startPos, dollarPos - startPos);
+        
+        size_t endPos = input.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_", dollarPos + 1);
+        if (endPos == std::string::npos)
+            endPos = input.size();
+        
+        std::string placeholder = input.substr(dollarPos + 1, endPos - dollarPos - 1);
+        
+        char* value = std::getenv(placeholder.c_str());
+        if (value != nullptr) {
+            output += value;
+        } else {
+            output += '$' + placeholder;
+        }
+        
+        startPos = endPos;
+        dollarPos = input.find('$', startPos);
+    }
+    
+    output += input.substr(startPos);
+    
+    return output;
+}
+
 
 #endif
