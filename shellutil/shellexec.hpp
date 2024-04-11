@@ -5,6 +5,7 @@
 #include "settingsutil.hpp"
 #include "stringutil.hpp"
 #include "sysutil.hpp"
+#include "vecutil.hpp"
 #include <algorithm>
 #include <asm-generic/errno-base.h>
 #include <cstdio>
@@ -18,6 +19,8 @@
 #include <vector>
 
 namespace fs = std::filesystem;
+
+inline int runCommand(char** args);
 
 const std::vector<std::string> builtins = {
     "cd", "exit", "which",
@@ -48,6 +51,9 @@ inline int shellexec(std::string cmd, char **args) {
             return 0;
         }
     }
+}
+inline int runCommand(std::string command, std::string envName, std::string envVal){
+auto toRet = runCommand(cstringArray(split(command)).data());
 }
 inline int runCommand(char **args) {
     std::string cmd = *args;
