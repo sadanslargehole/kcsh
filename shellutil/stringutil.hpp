@@ -142,7 +142,7 @@ inline std::string replaceEnvironmentVariables(const std::string& input) {
         if (value != nullptr) {
             output += value;
         } else {
-            output += '$' + placeholder;
+            output += "";
         }
         
         startPos = endPos;
