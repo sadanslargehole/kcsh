@@ -9,3 +9,4 @@ Makefile also includes `release` (builds all release targets.) Release is defaul
 
 ## Contributing
 Feature requests, issues, and pull requests are always welcome!
+Clang-format is our formatter of choice, with a .clang-format file included for you. Please format your code! <3
