@@ -9,6 +9,8 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <regex>
 #include <sstream>
 #include <utility>
@@ -18,9 +20,26 @@
 typedef std::string string;
 
 using IniData = std::map<std::string, std::map<std::string, std::pair<std::string, std::string>>>;
-
+using json = nlohmann::json;
 namespace fs = std::filesystem;
-
+static std::unordered_map<std::string, std::string> colorMappings({
+    {"black", FG_BLACK},
+    {"red", FG_RED},
+    {"green", FG_GREEN},
+    {"yellow", FG_YELLOW},
+    {"blue", FG_BLUE},
+    {"magenta", FG_MAGENTA},
+    {"cyan", FG_CYAN},
+    {"white", FG_WHITE},
+    {"bg_black", BG_BLACK},
+    {"bg_red", BG_RED},
+    {"bg_green", BG_GREEN},
+    {"bg_yellow", BG_YELLOW},
+    {"bg_blue", BG_BLUE},
+    {"bg_magenta", BG_MAGENTA},
+    {"bg_cyan", BG_CYAN},
+    {"bg_white", BG_WHITE},
+});
 extern fs::path settingsDir;
 extern fs::path themesDir;
 
@@ -100,7 +119,10 @@ inline IniData parseIniFile(const std::string &filename) {
     file.close();
     return iniData;
 }
-
+inline json getDefaultConfigJson() {
+    throw "NOT IMPLIMENTED";
+    return nullptr;
+}
 inline IniData getDefaultConfig() {
     IniData defaultConfig;
 
@@ -108,7 +130,10 @@ inline IniData getDefaultConfig() {
 
     return defaultConfig;
 }
-
+inline json getDefaulThemeJson() {
+    throw "NOT IMPLIMENTED";
+    return nullptr;
+}
 inline IniData getDefaultTheme() {
     IniData defaultTheme;
 
@@ -128,14 +153,17 @@ inline IniData getDefaultTheme() {
 ; %RESET% will reset text formatting\n");
 
     defaultTheme["colors"]["path"] = std::make_pair(FG_BLUE, "color code/s for path \n; see "
-                                                             "https://keli5.github.io/kcsh-resources/"
+                                                             "https://keli5.gthub.io/kcsh-resources/"
                                                              "colors.html for help with color codes");
     defaultTheme["colors"]["hostname"] = std::make_pair(FG_MAGENTA, "color code/s for hostname");
     defaultTheme["colors"]["username"] = std::make_pair(FG_RED, "color code/s for username");
 
     return defaultTheme;
 }
-
+inline void saveJsonFile(const json &data, const std::string &filename) {
+    throw "NOT IMPLIMENTED";
+    return;
+}
 inline void saveIniFile(const IniData &iniData, const std::string &filename) {
     std::ofstream file(filename);
     if (!file.is_open()) {
@@ -177,45 +205,99 @@ inline std::string getIniValue(const IniData &iniData, const std::string &sectio
     return "";
 }
 
-inline std::string parsePromptFormat(std::string ptemplate, std::string prompt_character, std::string cwd,
-                                     std::string cwd_color, std::string user, std::string user_color, std::string host,
-                                     std::string host_color, PluginLoader loader) {
-    // wow this is like hell actually
-    std::string promptOutput = ptemplate;
-    // hard code to prevent plugins from fiddling with it and perform them first
-    promptOutput = replaceSubstring(promptOutput, "%COLOREDUSER%", user_color + user);
-    promptOutput = replaceSubstring(promptOutput, "%USER%", user);
-    promptOutput = replaceSubstring(promptOutput, "%COLOREDHOST%", host_color + host);
-    promptOutput = replaceSubstring(promptOutput, "%HOST%", host);
-    promptOutput = replaceSubstring(promptOutput, "%COLOREDPATH%", cwd_color + cwd);
-    promptOutput = replaceSubstring(promptOutput, "%PATH%", cwd);
-    promptOutput = replaceSubstring(promptOutput, "%NEWLINE%", "\n");
-    promptOutput = replaceSubstring(promptOutput, "%PROMPTCHARACTER%", prompt_character);
-    promptOutput = replaceSubstring(promptOutput, "%RESET%", RESET);
-    promptOutput = replaceSubstring(promptOutput, "%BOLD%", BOLD);
-    promptOutput = replaceSubstring(promptOutput, "%ULINE%", ULINE);
-    // and now everything else
-
-    for (const auto &pluginPair : loader.getPlugins()) {
-        KCSHPlugin *plugin = pluginPair.second;
-
-        for (const auto &replacementPair : plugin->promptReplacementMapping) {
-            std::string result;
-            std::visit(
-                [&result](const auto &value) {
-                    if constexpr (std::is_same_v<std::decay_t<decltype(value)>, std::string>) {
-                        result = value;
-                    } else if constexpr (std::is_invocable_r_v<std::string, decltype(value)>) {
-                        result = value();
-                    }
-                },
-                replacementPair.second);
-
-            promptOutput = replaceSubstring(promptOutput, replacementPair.first, result);
-        }
+inline std::string parseColorBG(std::string color) {
+    if (colorMappings.contains("bg_" + color)) {
+        return colorMappings["bg_" + color];
+    } else {
+#ifdef NDEBUG
+        std::cerr << "background color: "
+                  << "bg_" + color << " not found"
+                  << "\n";
+#endif
+        return "";
     }
+}
+inline std::string parseColor(std::string color) {
+    if (colorMappings.contains(color)) {
+        return colorMappings[color];
+    } else {
+#ifdef NDEBUG
+        std::cerr << "foreground color: " << color << " not found"
+                  << "\n";
+#endif
+        return "";
+    }
+}
+inline std::string parseSection(json part, std::string data) {
+    std::string toRet = "";
+    if (part["prefix"]["content"] != nullptr) {
+        auto x = part["prefix"];
+        toRet += parseColor(x["foreground"]);
+        toRet += parseColorBG(x["background"]);
+        toRet += x["content"];
+        toRet += RESET;
+    }
+    toRet += parseColor(part["foreground"]);
+    toRet += parseColor(part["background"]);
+    toRet += data;
+    toRet += RESET;
+    if (part["postfix"]["content"] != nullptr) {
+        auto x = part["postfix"];
+        toRet += parseColor(x["foreground"]);
+        toRet += parseColorBG(x["background"]);
+        toRet += x["content"];
+        toRet += RESET;
+    }
+    return toRet;
+}
+inline std::string parsePromptFormat(json config,  std::string user, string host, std::string cwd, PluginLoader loader) {
+    // hell v2:tm:
+    // parse username
+    auto p = config["prompt"];
+    std::string toRet = "";
+    toRet += parseSection(p["username"], user);
+    toRet += parseSection(p["hostname"], host);
+    toRet += parseSection(p["path"], cwd);
+    toRet += '\n';
+    toRet += p["promptChar"];
+    // wow this is like hell actually
+    // std::string promptOutput = ptemplate;
+    // // hard code to prevent plugins from fiddling with it and perform them first
+    // promptOutput = replaceSubstring(promptOutput, "%COLOREDUSER%", user_color + user);
+    // promptOutput = replaceSubstring(promptOutput, "%USER%", user);
+    // promptOutput = replaceSubstring(promptOutput, "%COLOREDHOST%", host_color + host);
+    // promptOutput = replaceSubstring(promptOutput, "%HOST%", host);
+    // promptOutput = replaceSubstring(promptOutput, "%COLOREDPATH%", cwd_color + cwd);
+    // promptOutput = replaceSubstring(promptOutput, "%PATH%", cwd);
+    // promptOutput = replaceSubstring(promptOutput, "%NEWLINE%", "\n");
+    // promptOutput = replaceSubstring(promptOutput, "%PROMPTCHARACTER%", prompt_character);
+    // promptOutput = replaceSubstring(promptOutput, "%RESET%", RESET);
+    // promptOutput = replaceSubstring(promptOutput, "%BOLD%", BOLD);
+    // promptOutput = replaceSubstring(promptOutput, "%ULINE%", ULINE);
+    // and now everything else
+    // FIXME: add plugin support
+    // TODO: add plugin support
+    // idea: plugin will fiddle the json before we do
+    // for (const auto &pluginPair : loader.getPlugins()) {
+    //     KCSHPlugin *plugin = pluginPair.second;
+    //
+    //     for (const auto &replacementPair : plugin->promptReplacementMapping) {
+    //         std::string result;
+    //         std::visit(
+    //             [&result](const auto &value) {
+    //                 if constexpr (std::is_same_v<std::decay_t<decltype(value)>, std::string>) {
+    //                     result = value;
+    //                 } else if constexpr (std::is_invocable_r_v<std::string, decltype(value)>) {
+    //                     result = value();
+    //                 }
+    //             },
+    //             replacementPair.second);
+    //
+    //         promptOutput = replaceSubstring(promptOutput, replacementPair.first, result);
+    //     }
+    // }
 
-    return promptOutput;
+    return toRet;
 }
 
 #endif

@@ -5,10 +5,12 @@
 #include "shellutil/stringutil.hpp"
 #include "shellutil/sysutil.hpp"
 #include "shellutil/vecutil.hpp"
+#include <compare>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <limits.h> // This IS used wtf?
 #include <string>
@@ -49,7 +51,7 @@ int main([[gnu::unused]] int argc, char **argv) {
             pluginLoader.loadPlugin(entry.path());
         }
     }
-
+    
     settings = parseIniFile(settingsDir.string() + "/kcsh_config.ini");
 
     if (settings.empty()) {
@@ -83,28 +85,25 @@ int main([[gnu::unused]] int argc, char **argv) {
     } else {
         std::cerr << "Not setting $SHELL - could not get absolute path";
     }
-
+    //FIXME: bad for testing
+    std::ifstream file(settingsDir.string() + "test/main.jsonc");
+    json config = json::parse(file, nullptr, true, true);
     while (true) {
 
         std::string prompt_color = FG_WHITE;
         std::string prompt_character = getIniValue(theme, "prompt", "promptcharacter") + " ";
 
         std::string cwd = prettyPath(trim(fs::current_path()));
-        std::string cwd_color = getIniValue(theme, "colors", "path");
 
         std::string user = trim(sysexec("whoami"));
-        std::string user_color = getIniValue(theme, "colors", "username");
 
         std::string hostname = trim(sysexec("cat /proc/sys/kernel/hostname"));
-        std::string hostname_color = getIniValue(theme, "colors", "hostname");
-        ;
 
         std::string cmd = "";
 
         char **args;
 
-        std::string prompt = parsePromptFormat(getIniValue(theme, "prompt", "format"), prompt_character, cwd, cwd_color,
-                                               user, user_color, hostname, hostname_color, pluginLoader);
+        std::string prompt = parsePromptFormat(config, user, hostname, cwd, pluginLoader);
 
         std::cout << prompt;
 
