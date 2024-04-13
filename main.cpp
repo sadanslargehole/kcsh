@@ -22,6 +22,10 @@ fs::path themesDir   = settingsDir.string() + "/themes/";
 extern std::vector<std::pair<std::string, Replacement>> promptReplacementMapping;
 
 int main([[gnu::unused]] int argc, char** argv) {
+    if (argc > 1 && std::string(argv[1]) == "--version") { // appease hyfetch, neofetch, etc
+        std::cout << "" << std::endl;
+        return 0;
+    }
 
     setenv("OLDPWD", fs::current_path().c_str(), 1);
     setenv("PWD", fs::current_path().c_str(), 1);
