@@ -19,9 +19,8 @@
 
 namespace fs = std::filesystem;
 
-const std::vector<std::string> builtins = {
-    "cd", "exit", "which",
-    "kcshthemes", "settheme"}; // Remember to add your builtins!!!
+const std::vector<std::string> builtins = {"cd", "exit", "which", "kcshthemes",
+                                           "settheme"}; // Remember to add your builtins!!!
 
 inline int shellexec(std::string cmd, char **args) {
 
@@ -103,11 +102,13 @@ inline int runCommand(char **args) {
         }
     } else if (cmd == "kcshthemes") {
         std::string selected_theme = getenv("KCSH_THEME");
-        if (selected_theme.empty()) selected_theme = "default";
+        if (selected_theme.empty())
+            selected_theme = "default";
 
-        for (const auto& file : fs::directory_iterator(themesDir)) {
+        for (const auto &file : fs::directory_iterator(themesDir)) {
             std::string themename = replaceSubstring(file.path().filename().string(), ".ini", "");
-            std::cout << themename << " " << (selected_theme == themename ? FG_GREEN + BOLD + "✓" + RESET : "") << std::endl;
+            std::cout << themename << " " << (selected_theme == themename ? FG_GREEN + BOLD + "✓" + RESET : "")
+                      << std::endl;
         }
         return 0;
     } else if (cmd == "settheme") {
@@ -116,9 +117,9 @@ inline int runCommand(char **args) {
 
         if (!fs::exists(themesDir.string() + "/" + theme + ".ini") ||
             !fs::is_regular_file(themesDir.string() + "/" + theme + ".ini")) {
-                std::cout << "theme " << theme << " does not exist in " << themesDir.string() << std::endl;
-                return ENOENT;
-            }
+            std::cout << "theme " << theme << " does not exist in " << themesDir.string() << std::endl;
+            return ENOENT;
+        }
 
         settings["appearance"]["theme"] = std::make_pair(theme, settings["appearance"]["theme"].second);
         saveIniFile(settings, settingsDir.string() + "/kcsh_config.ini");

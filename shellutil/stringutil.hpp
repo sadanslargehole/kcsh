@@ -1,12 +1,12 @@
 #ifndef KCSH_STRINGUTIL
 #define KCSH_STRINGUTIL
 
+#include <map>
 #include <sstream>
 #include <string>
-#include <map>
 #include <vector>
 
-inline std::pair<std::map<std::string, std::string>, std::string> parseEnvVars(const std::string& input) {
+inline std::pair<std::map<std::string, std::string>, std::string> parseEnvVars(const std::string &input) {
     std::map<std::string, std::string> result;
 
     size_t pos = 0;
@@ -49,7 +49,7 @@ inline std::pair<std::map<std::string, std::string>, std::string> parseEnvVars(c
 
     try {
         remainingCommand = input.substr(pos);
-    } catch (const std::out_of_range& e) {
+    } catch (const std::out_of_range &e) {
         remainingCommand = "";
     }
 
@@ -68,11 +68,11 @@ inline std::vector<std::string> split(std::string inputString, char delimiter = 
     return tokens;
 }
 
-inline std::vector<std::string> split(std::string* inputString, char delimiter = ' ') {
+inline std::vector<std::string> split(std::string *inputString, char delimiter = ' ') {
     return split(*inputString, delimiter);
 }
 
-inline std::string trim(const std::string& str) {
+inline std::string trim(const std::string &str) {
     size_t firstNonSpace = str.find_first_not_of(" \t\n\r");
 
     if (firstNonSpace == std::string::npos) {
@@ -82,14 +82,14 @@ inline std::string trim(const std::string& str) {
     return str.substr(firstNonSpace, lastNonSpace - firstNonSpace + 1);
 }
 
-inline std::string join(char** strings, char delimiter = char()) {
+inline std::string join(char **strings, char delimiter = char()) {
     std::string result = "";
-    if(*strings==nullptr){
+    if (*strings == nullptr) {
         return result;
     }
-    for (char** currentString = strings; *currentString != nullptr; ++currentString) {
+    for (char **currentString = strings; *currentString != nullptr; ++currentString) {
         result += *currentString;
-        
+
         if (*(currentString + 1) != nullptr) {
             result += delimiter;
         }
@@ -98,7 +98,7 @@ inline std::string join(char** strings, char delimiter = char()) {
     return result;
 }
 
-inline std::string join(const std::vector<std::string>& strings, char delimiter = char()) {
+inline std::string join(const std::vector<std::string> &strings, char delimiter = char()) {
     std::string result = "";
 
     for (auto currentString = strings.begin(); currentString != strings.end(); ++currentString) {
@@ -112,7 +112,8 @@ inline std::string join(const std::vector<std::string>& strings, char delimiter 
     return result;
 }
 
-inline std::string replaceSubstring(const std::string& original, const std::string& toReplace, const std::string& replacement) {
+inline std::string replaceSubstring(const std::string &original, const std::string &toReplace,
+                                    const std::string &replacement) {
     std::string result = original;
     size_t position = result.find(toReplace);
 
@@ -124,35 +125,35 @@ inline std::string replaceSubstring(const std::string& original, const std::stri
     return result;
 }
 
-inline std::string replaceEnvironmentVariables(const std::string& input) {
+inline std::string replaceEnvironmentVariables(const std::string &input) {
     std::string output;
     size_t startPos = 0;
     size_t dollarPos = input.find('$');
-    
+
     while (dollarPos != std::string::npos) {
         output += input.substr(startPos, dollarPos - startPos);
-        
-        size_t endPos = input.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_", dollarPos + 1);
+
+        size_t endPos =
+            input.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_", dollarPos + 1);
         if (endPos == std::string::npos)
             endPos = input.size();
-        
+
         std::string placeholder = input.substr(dollarPos + 1, endPos - dollarPos - 1);
-        
-        char* value = std::getenv(placeholder.c_str());
+
+        char *value = std::getenv(placeholder.c_str());
         if (value != nullptr) {
             output += value;
         } else {
             output += "";
         }
-        
+
         startPos = endPos;
         dollarPos = input.find('$', startPos);
     }
-    
+
     output += input.substr(startPos);
-    
+
     return output;
 }
-
 
 #endif

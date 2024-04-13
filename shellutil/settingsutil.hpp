@@ -1,19 +1,19 @@
 #ifndef KCSH_SETTINGSUTIL
 #define KCSH_SETTINGSUTIL
 
-#include <iostream>
+#include "../api/kcshplugin.hpp"
+#include "colors.hpp"
+#include "pluginloader.hpp"
+#include "stringutil.hpp"
+#include <filesystem>
 #include <fstream>
-#include <sstream>
+#include <iostream>
 #include <map>
 #include <regex>
-#include <filesystem>
+#include <sstream>
 #include <utility>
 #include <variant>
 #include <vector>
-#include "colors.hpp"
-#include "stringutil.hpp"
-#include "../api/kcshplugin.hpp"
-#include "pluginloader.hpp"
 
 typedef std::string string;
 
@@ -24,7 +24,7 @@ namespace fs = std::filesystem;
 extern fs::path settingsDir;
 extern fs::path themesDir;
 
-inline std::string escapeToReadable(const std::string& input) {
+inline std::string escapeToReadable(const std::string &input) {
     std::ostringstream result;
     for (char c : input) {
         bool inComment = false;
@@ -45,7 +45,7 @@ inline std::string escapeToReadable(const std::string& input) {
     return result.str();
 }
 
-inline std::string readableToEscape(const std::string& input) {
+inline std::string readableToEscape(const std::string &input) {
     std::ostringstream result;
     size_t i = 0;
     while (i < input.size()) {
@@ -63,15 +63,15 @@ inline std::string readableToEscape(const std::string& input) {
     return result.str();
 }
 
-inline IniData parseIniFile(const std::string& filename) {
+inline IniData parseIniFile(const std::string &filename) {
     IniData iniData;
     std::string currentSection;
 
     std::ifstream file(filename);
     if (!file.is_open()) {
-        #ifdef NDEBUG
-            std::cerr << "Error opening file: " << filename << std::endl;
-        #endif
+#ifdef NDEBUG
+        std::cerr << "Error opening file: " << filename << std::endl;
+#endif
         return iniData;
     }
 
@@ -114,8 +114,10 @@ inline IniData getDefaultTheme() {
 
     defaultTheme["info"]["name"] = std::make_pair("Default", "theme name");
     defaultTheme["prompt"]["promptcharacter"] = std::make_pair("$", "");
-    defaultTheme["prompt"]["format"] = std::make_pair("%BOLD%[%COLOREDUSER%%RESET%%BOLD%@%COLOREDHOST%%RESET%%BOLD%]%RESET% %COLOREDPATH% %RESET%%NEWLINE%%PROMPTCHARACTER%",
-    "Prompt format. Available placeholders: \n\
+    defaultTheme["prompt"]["format"] =
+        std::make_pair("%BOLD%[%COLOREDUSER%%RESET%%BOLD%@%COLOREDHOST%%RESET%%BOLD%]%RESET% "
+                       "%COLOREDPATH% %RESET%%NEWLINE%%PROMPTCHARACTER%",
+                       "Prompt format. Available placeholders: \n\
 ; %COLOREDUSER% and %USER% for the formatted and unformatted user, respectively\n\
 ; %COLOREDHOST% and %HOST% for the formatted and unformatted host, respectively\n\
 ; %COLOREDPATH% and %PATH% for the formatted and unformatted path, respectively\n\
@@ -125,25 +127,27 @@ inline IniData getDefaultTheme() {
 ; %ULINE% will make following text underlined\n\
 ; %RESET% will reset text formatting\n");
 
-    defaultTheme["colors"]["path"] = std::make_pair(FG_BLUE, "color code/s for path \n; see https://keli5.github.io/kcsh-resources/colors.html for help with color codes");
+    defaultTheme["colors"]["path"] = std::make_pair(FG_BLUE, "color code/s for path \n; see "
+                                                             "https://keli5.github.io/kcsh-resources/"
+                                                             "colors.html for help with color codes");
     defaultTheme["colors"]["hostname"] = std::make_pair(FG_MAGENTA, "color code/s for hostname");
     defaultTheme["colors"]["username"] = std::make_pair(FG_RED, "color code/s for username");
 
     return defaultTheme;
 }
 
-inline void saveIniFile(const IniData& iniData, const std::string& filename) {
+inline void saveIniFile(const IniData &iniData, const std::string &filename) {
     std::ofstream file(filename);
     if (!file.is_open()) {
         std::cerr << "Error opening file for writing: " << filename << std::endl;
         return;
     }
 
-    for (const auto& section : iniData) {
+    for (const auto &section : iniData) {
         file << "[" << section.first << "]\n";
-        for (const auto& pair : section.second) {
+        for (const auto &pair : section.second) {
             file << pair.first << "=" << escapeToReadable(pair.second.first);
-            
+
             if (!pair.second.second.empty()) {
                 file << " ; " << escapeToReadable(pair.second.second); // if there's a comment add it
             }
@@ -156,9 +160,8 @@ inline void saveIniFile(const IniData& iniData, const std::string& filename) {
     file.close();
 }
 
-
-//TODO: Is this slow?
-inline std::string getIniValue(const IniData& iniData, const std::string& section, const std::string& key) {
+// TODO: Is this slow?
+inline std::string getIniValue(const IniData &iniData, const std::string &section, const std::string &key) {
     auto sectionIter = iniData.find(section);
     if (sectionIter != iniData.end()) {
         auto keyIter = sectionIter->second.find(key);
@@ -174,47 +177,45 @@ inline std::string getIniValue(const IniData& iniData, const std::string& sectio
     return "";
 }
 
-inline std::string parsePromptFormat(std::string ptemplate, std::string prompt_character,
-    std::string cwd, std::string cwd_color,
-    std::string user, std::string user_color,
-    std::string host, std::string host_color,
-    PluginLoader loader) {
-        // wow this is like hell actually
-        std::string promptOutput = ptemplate;
-        // hard code to prevent plugins from fiddling with it and perform them first
-        promptOutput = replaceSubstring(promptOutput, "%COLOREDUSER%", user_color + user);
-        promptOutput = replaceSubstring(promptOutput, "%USER%", user);
-        promptOutput = replaceSubstring(promptOutput, "%COLOREDHOST%", host_color + host);
-        promptOutput = replaceSubstring(promptOutput, "%HOST%", host);
-        promptOutput = replaceSubstring(promptOutput, "%COLOREDPATH%", cwd_color + cwd);
-        promptOutput = replaceSubstring(promptOutput, "%PATH%", cwd);
-        promptOutput = replaceSubstring(promptOutput, "%NEWLINE%", "\n");
-        promptOutput = replaceSubstring(promptOutput, "%PROMPTCHARACTER%", prompt_character);
-        promptOutput = replaceSubstring(promptOutput, "%RESET%", RESET);
-        promptOutput = replaceSubstring(promptOutput, "%BOLD%", BOLD);
-        promptOutput = replaceSubstring(promptOutput, "%ULINE%", ULINE);
-        // and now everything else
+inline std::string parsePromptFormat(std::string ptemplate, std::string prompt_character, std::string cwd,
+                                     std::string cwd_color, std::string user, std::string user_color, std::string host,
+                                     std::string host_color, PluginLoader loader) {
+    // wow this is like hell actually
+    std::string promptOutput = ptemplate;
+    // hard code to prevent plugins from fiddling with it and perform them first
+    promptOutput = replaceSubstring(promptOutput, "%COLOREDUSER%", user_color + user);
+    promptOutput = replaceSubstring(promptOutput, "%USER%", user);
+    promptOutput = replaceSubstring(promptOutput, "%COLOREDHOST%", host_color + host);
+    promptOutput = replaceSubstring(promptOutput, "%HOST%", host);
+    promptOutput = replaceSubstring(promptOutput, "%COLOREDPATH%", cwd_color + cwd);
+    promptOutput = replaceSubstring(promptOutput, "%PATH%", cwd);
+    promptOutput = replaceSubstring(promptOutput, "%NEWLINE%", "\n");
+    promptOutput = replaceSubstring(promptOutput, "%PROMPTCHARACTER%", prompt_character);
+    promptOutput = replaceSubstring(promptOutput, "%RESET%", RESET);
+    promptOutput = replaceSubstring(promptOutput, "%BOLD%", BOLD);
+    promptOutput = replaceSubstring(promptOutput, "%ULINE%", ULINE);
+    // and now everything else
 
-        for (const auto& pluginPair: loader.getPlugins()) {
-            KCSHPlugin* plugin = pluginPair.second;
+    for (const auto &pluginPair : loader.getPlugins()) {
+        KCSHPlugin *plugin = pluginPair.second;
 
-            for (const auto& replacementPair: plugin->promptReplacementMapping) {
-                std::string result;
-                std::visit([&result](const auto& value) {
+        for (const auto &replacementPair : plugin->promptReplacementMapping) {
+            std::string result;
+            std::visit(
+                [&result](const auto &value) {
                     if constexpr (std::is_same_v<std::decay_t<decltype(value)>, std::string>) {
                         result = value;
-                    }
-                    else if constexpr (std::is_invocable_r_v<std::string, decltype(value)>) {
+                    } else if constexpr (std::is_invocable_r_v<std::string, decltype(value)>) {
                         result = value();
                     }
-                }, replacementPair.second);
+                },
+                replacementPair.second);
 
-                promptOutput = replaceSubstring(promptOutput, replacementPair.first, result);
-            }
-
+            promptOutput = replaceSubstring(promptOutput, replacementPair.first, result);
         }
+    }
 
-        return promptOutput;
+    return promptOutput;
 }
 
 #endif

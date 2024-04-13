@@ -5,9 +5,9 @@
 #include <utility>
 
 class KCSHPlugin {
-public:
+  public:
     std::vector<std::pair<std::string, Replacement>> promptReplacementMapping;
-    
+
     virtual ~KCSHPlugin() = default;
     virtual void initialize() = 0;
     void registerPromptReplacement(std::string wildcard, Replacement replaceWith) {
