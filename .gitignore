@@ -8,3 +8,5 @@ core.*
 .vscode
 #example plugin
 example.so
+# compile commands
+compile_commands.json
