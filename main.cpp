@@ -20,7 +20,7 @@ fs::path themesDir = settingsDir.string() + "/themes/";
 extern std::vector<std::pair<std::string, Replacement>>
     promptReplacementMapping;
 
-int main([[gnu::unused]] int argc, char **argv) {
+int main([[gnu::unused]] int argc,[[gnu::unused]] char **argv) {
 
   setenv("OLDPWD", fs::current_path().c_str(), 1);
   setenv("PWD", fs::current_path().c_str(), 1);
@@ -216,7 +216,7 @@ int main([[gnu::unused]] int argc, char **argv) {
         envName = soFar;
         soFar.clear();
         inEnv = true;
-        if (*in + 1 == '"') {
+        if (*(c + 1) == '"') {
           envQuote = true;
           c++;
         }
@@ -256,7 +256,7 @@ int main([[gnu::unused]] int argc, char **argv) {
         canEnv = false;
       }
       if (*c == ';' && !escape) {
-        runCommand(soFar, envName, envValue);
+        runCommand(soFar, &envName, &envValue);
         canEnv = true;
         soFar.clear();
         envName.clear();
@@ -267,7 +267,7 @@ int main([[gnu::unused]] int argc, char **argv) {
         continue;
       }
       if (*c == '&' && *(c + 1) == '&' && !escape) {
-        if (runCommand(soFar, envName, envValue) != 0) {
+        if (runCommand(soFar, &envName, &envValue) != 0) {
           soFar.clear();
           envName.clear();
           envValue.clear();
@@ -283,7 +283,7 @@ int main([[gnu::unused]] int argc, char **argv) {
         continue;
       }
       if (*c == '|' && *(c + 1) == '|' && !escape) {
-        if (runCommand(soFar, envName, envValue) == 0) {
+        if (runCommand(soFar, &envName, &envValue) == 0) {
           envName.clear();
           envValue.clear();
           soFar.clear();
@@ -298,10 +298,15 @@ int main([[gnu::unused]] int argc, char **argv) {
         }
         continue;
       }
+      if (escape){
+        escape = false;
+      }
+      soFar += c;
       // REDIRECTING
       // OVERWRITING
       // PIPE
     }
+    runCommand(soFar, nullptr, nullptr);
   }
 
   return 0;

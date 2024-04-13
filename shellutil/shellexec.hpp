@@ -17,7 +17,7 @@
 #include <unistd.h>
 #include <utility>
 #include <vector>
-
+#include "../main.hpp"
 namespace fs = std::filesystem;
 
 inline int runCommand(char** args);
@@ -25,7 +25,9 @@ inline int runCommand(char** args);
 const std::vector<std::string> builtins = {
     "cd", "exit", "which",
     "kcshthemes", "settheme"}; // Remember to add your builtins!!!
-
+inline void setSessionVar(std::string name, std::string val){
+    shellVars[name] = val;
+}
 inline int shellexec(std::string cmd, char **args) {
 
     const char *command = cmd.c_str();
@@ -52,8 +54,26 @@ inline int shellexec(std::string cmd, char **args) {
         }
     }
 }
-inline int runCommand(std::string command, std::string envName, std::string envVal){
-auto toRet = runCommand(cstringArray(split(command)).data());
+
+inline int runCommand(std::string command, std::string* envName, std::string* envVal){
+    if(envName == nullptr || envName->empty()){
+        return runCommand((char**)cstringArray(split(command)).data());
+    }
+    std::string oldEnv = "";
+    if(setenv(envName->c_str(), envVal->c_str(), 0)){
+        oldEnv = getenv(envName->c_str());
+    }
+    setenv(envName->c_str(), envVal->c_str(), 1);
+    auto a = split(command);
+    auto b = cstringArray(a);
+    auto x = const_cast<char**>(b.data());
+auto toRet = runCommand(x);
+    if(oldEnv.empty()){
+        unsetenv(envName->c_str());
+    }else{
+        setenv(envName->c_str(), oldEnv.c_str(), 1);
+    }
+    return toRet;
 }
 inline int runCommand(char **args) {
     std::string cmd = *args;
