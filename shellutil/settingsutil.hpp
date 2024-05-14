@@ -98,6 +98,17 @@ inline std::string readableToEscape(const std::string &input) {
             i += 6;
             int codepoint = std::stoi(chars, nullptr, 16);
             result << getUnicodeChar(codepoint);
+        } else if (input[i] == '\\' && input[i + 1] == 'U') {
+            std::string chars = "";
+            chars += input[i+2];
+            chars += input[i+3];
+            chars += input[i+4];
+            chars += input[i+5];
+            chars += input[i+6];
+            chars += input[i+7];
+            i += 8;
+            int codepoint = std::stoi(chars, nullptr, 16);
+            result << getUnicodeChar(codepoint);
         } else if (input[i] == '\\' && input[i + 1] == ';') {
             result << ';';
             i += 2;
